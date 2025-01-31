@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "370846716399",
+    "project_id": "car-collection-app",
+    "storage_bucket": "car-collection-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:370846716399:android:f29e4b4317c2a97f85661a",
+        "android_client_info": {
+          "package_name": "com.carcollectionapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "370846716399-n9kmpk4iqar6eedilq006iuesvc9h9ar.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBTtTvHtUFARbSjhG50-J9eQV485dCzDCQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "370846716399-n9kmpk4iqar6eedilq006iuesvc9h9ar.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
