@@ -1,4 +1,3 @@
-// components/ImageGallery.tsx
 import React, { useState, useEffect } from 'react';
 import {
     View,
@@ -10,7 +9,8 @@ import {
     Platform,
 } from 'react-native';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
-import type { StorageImage } from '../../types/storage';
+import type { StorageImage } from '../types/storage';
+import { ImageDimensions } from '../types/common';
 
 interface ImageGalleryProps {
     images: StorageImage[];
@@ -19,8 +19,69 @@ interface ImageGalleryProps {
     mode?: 'detail' | 'edit';
 }
 
+interface ImageUriObject {
+    uri: string;
+}
+
+interface DownloadURLObject {
+    uri: string;
+    [key: string]: any;  // Allow other properties
+}
+
+function getImageUri(image: StorageImage | undefined): string | null {
+    if (!image) return null;
+
+    // Helper function to recursively find a valid URL
+    function findValidUrl(obj: any): string | null {
+        // If it's a string and a valid URL, return it
+        if (typeof obj === 'string') {
+            if (obj.startsWith('http') || obj.startsWith('file://') || obj.startsWith('data:image/')) {
+                return obj;
+            }
+            return null;
+        }
+
+        // If it's not an object or is null, return null
+        if (!obj || typeof obj !== 'object') {
+            return null;
+        }
+
+        // First check downloadURL property
+        if ('downloadURL' in obj) {
+            const result = findValidUrl(obj.downloadURL);
+            if (result) return result;
+        }
+
+        // Then check uri property
+        if ('uri' in obj) {
+            const result = findValidUrl(obj.uri);
+            if (result) return result;
+        }
+
+        // Lastly check path property
+        if ('path' in obj) {
+            const result = findValidUrl(obj.path);
+            if (result) return result;
+        }
+
+        // If none of the above work, return null
+        return null;
+    }
+
+    const validUrl = findValidUrl(image);
+    return validUrl;
+}
+
+function validateImageUri(uri?: string | null): boolean {
+    if (!uri || typeof uri !== 'string') return false;
+    return uri.startsWith('file://') ||
+        uri.startsWith('http://') ||
+        uri.startsWith('https://') ||
+        uri.startsWith('data:image/');
+}
+
 const ImageGallery: React.FC<ImageGalleryProps> = ({
-    images,
+    images = [],
     backgroundColor = '#F5F5F5',
     onImagePress,
     mode = 'detail'
@@ -30,11 +91,12 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
     const [containerHeight, setContainerHeight] = useState(0);
     const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
 
-    const hasMultipleImages = images.length > 1;
-    const currentImage = images[currentIndex]?.downloadURL || '/api/placeholder/400/300';
+    const hasMultipleImages = images && images.length > 1;
+    const currentImageUri = images && images[currentIndex]
+        ? getImageUri(images[currentIndex])
+        : null;
 
     useEffect(() => {
-        // Reset current index when images change
         setCurrentIndex(0);
     }, [images]);
 
@@ -45,37 +107,42 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
     };
 
     useEffect(() => {
-        // Get image dimensions to calculate optimal display size
-        Image.getSize(currentImage, (width, height) => {
-            const screenWidth = containerWidth;
-            const screenHeight = mode === 'detail' ?
-                Math.min(containerHeight, screenWidth * (3 / 2)) : // 3:2 aspect ratio for detail view
-                Math.min(containerHeight, screenWidth * (4 / 3)); // 4:3 aspect ratio for edit view
+        const screenWidth = containerWidth;
+        const screenHeight = mode === 'detail' ?
+            Math.min(containerHeight, screenWidth * (3 / 2)) :
+            Math.min(containerHeight, screenWidth * (4 / 3));
 
-            const imageAspectRatio = width / height;
-            const screenAspectRatio = screenWidth / screenHeight;
+        if (currentImageUri && validateImageUri(currentImageUri)) {
+            Image.getSize(
+                currentImageUri,
+                (width, height) => {
+                    const imageAspectRatio = width / height;
+                    const screenAspectRatio = screenWidth / screenHeight;
 
-            let newWidth, newHeight;
+                    let newWidth, newHeight;
 
-            if (imageAspectRatio > screenAspectRatio) {
-                // Image is wider than screen
-                newWidth = screenWidth;
-                newHeight = screenWidth / imageAspectRatio;
-            } else {
-                // Image is taller than screen
-                newHeight = screenHeight;
-                newWidth = screenHeight * imageAspectRatio;
-            }
+                    if (imageAspectRatio > screenAspectRatio) {
+                        newWidth = screenWidth;
+                        newHeight = screenWidth / imageAspectRatio;
+                    } else {
+                        newHeight = screenHeight;
+                        newWidth = screenHeight * imageAspectRatio;
+                    }
 
-            setImageSize({ width: newWidth, height: newHeight });
-        }, (error) => {
-            console.error('Error getting image size:', error);
-            // Fallback to container dimensions
-            setImageSize({ width: containerWidth, height: containerWidth * (3 / 2) });
-        });
-    }, [currentImage, containerWidth, containerHeight, mode]);
+                    setImageSize({ width: newWidth, height: newHeight });
+                },
+                (error) => {
+                    setImageSize({ width: screenWidth, height: screenWidth * (3 / 2) });
+                }
+            );
+        } else {
+            setImageSize({ width: screenWidth, height: screenWidth * (3 / 2) });
+        }
+    }, [currentImageUri, containerWidth, containerHeight, mode]);
 
     const navigateImage = (direction: 'next' | 'prev') => {
+        if (!images || images.length <= 1) return;
+
         setCurrentIndex(prev => {
             if (direction === 'next') {
                 return prev === images.length - 1 ? 0 : prev + 1;
@@ -96,7 +163,13 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
                 style={styles.imageContainer}
             >
                 <Image
-                    source={{ uri: currentImage }}
+                    source={(() => {
+                        const uri = getImageUri(images[currentIndex]);
+                        if (uri && validateImageUri(uri)) {
+                            return { uri };
+                        }
+                        return require('../assets/placeholder-image.png');
+                    })()}
                     style={[
                         styles.image,
                         {
@@ -104,6 +177,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
                             height: imageSize.height
                         }
                     ]}
+                    resizeMode="contain"
                 />
             </TouchableOpacity>
 
@@ -130,7 +204,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
                 <View style={styles.pagination}>
                     {images.map((_, index) => (
                         <View
-                            key={index}
+                            key={`dot-${index}`}
                             style={[
                                 styles.paginationDot,
                                 index === currentIndex && styles.paginationDotActive

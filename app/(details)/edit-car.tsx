@@ -8,6 +8,8 @@ import {
     Image,
     Platform,
     Alert,
+    KeyboardAvoidingView,
+    Keyboard,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import {
@@ -24,11 +26,8 @@ import Animated, {
     useAnimatedStyle,
     useSharedValue,
     withSpring,
-    withTiming,
-    withSequence,
     useAnimatedGestureHandler,
     runOnJS,
-    Easing,
 } from 'react-native-reanimated';
 import { useAuth } from '../../context/auth';
 import { useTheme } from '../../context/theme';
@@ -41,17 +40,29 @@ import type { StorageImage } from '../../types/storage';
 import { getCar, updateCar } from '../../services/firestone';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 
+interface CustomField {
+    name: string;
+    value: string;
+}
+
 interface CarFormData {
     name: string;
     series: string;
     seriesNumber: string;
     year: string;
     yearNumber: string;
+    toyNumber: string;
     color: string;
+    tampo: string;
+    baseColor: string;
+    windowColor: string;
+    interiorColor: string;
+    wheelType: string;
     purchaseDate: string;
     purchasePrice: string;
     purchaseStore: string;
     notes: string;
+    customFields: CustomField[];
 }
 
 interface FormErrors {
@@ -72,7 +83,6 @@ const THUMBNAIL_GAP = 12;
 const DraggablePhoto = React.memo(({ image, index, onReorder, onRemove, totalImages }: DraggablePhotoProps) => {
     const position = useSharedValue({ x: 0, y: 0 });
     const isDragging = useSharedValue(false);
-    const containerWidth = (THUMBNAIL_WIDTH + THUMBNAIL_GAP) * totalImages;
 
     const panGestureEvent = useAnimatedGestureHandler({
         onStart: (_, ctx: any) => {
@@ -80,20 +90,13 @@ const DraggablePhoto = React.memo(({ image, index, onReorder, onRemove, totalIma
             isDragging.value = true;
         },
         onActive: (event, ctx) => {
-            // Restrict movement to horizontal only
             const newX = ctx.startX + event.translationX;
-
-            // Calculate boundaries
             const maxX = (totalImages - index - 1) * (THUMBNAIL_WIDTH + THUMBNAIL_GAP);
             const minX = -index * (THUMBNAIL_WIDTH + THUMBNAIL_GAP);
-
-            // Clamp the position within boundaries
             position.value = {
                 x: Math.max(minX, Math.min(maxX, newX)),
                 y: 0
             };
-
-            // Calculate new index based on position
             const newIndex = Math.max(0,
                 Math.min(
                     Math.round(index + position.value.x / (THUMBNAIL_WIDTH + THUMBNAIL_GAP)),
@@ -103,12 +106,10 @@ const DraggablePhoto = React.memo(({ image, index, onReorder, onRemove, totalIma
 
             if (newIndex !== index) {
                 runOnJS(onReorder)(index, newIndex);
-                // Reset position after reorder
                 position.value = { x: 0, y: 0 };
             }
         },
         onEnd: () => {
-            // Animate back to original position
             position.value = withSpring(
                 { x: 0, y: 0 },
                 {
@@ -142,7 +143,10 @@ const DraggablePhoto = React.memo(({ image, index, onReorder, onRemove, totalIma
     return (
         <PanGestureHandler onGestureEvent={panGestureEvent}>
             <Animated.View style={[styles.photoWrapper, animatedStyle]}>
-                <Image source={{ uri: image.uri }} style={styles.photo} />
+                <Image
+                    source={{ uri: image.uri }}
+                    style={styles.photo}
+                />
                 <TouchableOpacity
                     style={styles.removePhotoButton}
                     onPress={() => onRemove(index)}
@@ -156,6 +160,12 @@ const DraggablePhoto = React.memo(({ image, index, onReorder, onRemove, totalIma
 });
 
 export default function EditCarScreen() {
+    const useDismissAndExecute = <T extends (...args: any[]) => any>(callback: T) => {
+        return (...args: Parameters<T>) => {
+            Keyboard.dismiss();
+            setTimeout(() => callback(...args), 100);
+        };
+    };
     const router = useRouter();
     const params = useLocalSearchParams();
     const { id } = params;
@@ -171,22 +181,35 @@ export default function EditCarScreen() {
         seriesNumber: '',
         year: '',
         yearNumber: '',
+        toyNumber: '',
         color: '',
+        tampo: '',
+        baseColor: '',
+        windowColor: '',
+        interiorColor: '',
+        wheelType: '',
         purchaseDate: '',
         purchasePrice: '',
         purchaseStore: '',
         notes: '',
+        customFields: [],
     });
-    const [errors, setErrors] = useState<FormErrors>({});
+
+     const [errors, setErrors] = useState<FormErrors>({});
     const [customImages, setCustomImages] = useState<StorageImage[]>([]);
 
-    const showDatePicker = () => {
-        setDatePickerVisible(true);
-    };
+    const handleAddField = useDismissAndExecute(() => {
+        setFormData(prev => ({
+            ...prev,
+            customFields: [
+                ...prev.customFields,
+                { name: '', value: '' }
+            ]
+        }));
+    });
 
-    const hideDatePicker = () => {
-        setDatePickerVisible(false);
-    };
+    const showDatePicker = () => setDatePickerVisible(true);
+    const hideDatePicker = () => setDatePickerVisible(false);
 
     const handleConfirm = (date: Date) => {
         const localDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
@@ -203,12 +226,38 @@ export default function EditCarScreen() {
             try {
                 const carData = await getCar(id as string);
                 if (carData) {
-                    const { images, ...rest } = carData;
-                    setFormData(rest);
-                    setCustomImages(images || []);
+                    const { images = [], customFields = [], ...rest } = carData as any;
+
+                    // Extract the correct downloadURL from the nested structure
+                    const formattedImages = images.map((img: any) => {
+                        // Handle first image format
+                        if (img.uri?.path?.downloadURL) {
+                            return {
+                                uri: img.uri.path.downloadURL,
+                                downloadURL: img.uri.path.downloadURL,
+                                path: img.uri.path.path
+                            };
+                        }
+                        // Handle second image format
+                        if (img.uri?.downloadURL) {
+                            return {
+                                uri: img.uri.downloadURL,
+                                downloadURL: img.uri.downloadURL,
+                                path: img.uri.path
+                            };
+                        }
+                        // Fallback for other formats
+                        return {
+                            uri: img.downloadURL || img.uri || '',
+                            downloadURL: img.downloadURL || '',
+                            path: img.path || ''
+                        };
+                    });
+
+                    setFormData({ ...rest, customFields });
+                    setCustomImages(formattedImages);
                 }
             } catch (error) {
-                console.error('Error fetching car:', error);
                 Alert.alert('Error', 'Failed to load car details.');
             } finally {
                 setIsLoading(false);
@@ -222,6 +271,9 @@ export default function EditCarScreen() {
         const newErrors: FormErrors = {};
         if (!formData.name.trim()) {
             newErrors.name = 'Car name is required';
+        }
+        if (!formData.toyNumber.trim()) {
+            newErrors.toyNumber = 'Toy # is required';
         }
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -263,7 +315,6 @@ export default function EditCarScreen() {
         try {
             const result = await ImagePicker.launchCameraAsync({
                 allowsEditing: true,
-                //aspect: [16, 9],//
                 quality: 0.8,
             });
 
@@ -294,7 +345,6 @@ export default function EditCarScreen() {
             const result = await ImagePicker.launchImageLibraryAsync({
                 mediaTypes: ImagePicker.MediaTypeOptions.Images,
                 allowsEditing: true,
-                //aspect: [16, 9],//
                 quality: 0.8,
             });
 
@@ -317,7 +367,6 @@ export default function EditCarScreen() {
 
     const handleReorderImages = useCallback((from: number, to: number) => {
         if (from === to) return;
-
         setCustomImages(prev => {
             const newImages = [...prev];
             const [movedItem] = newImages.splice(from, 1);
@@ -335,13 +384,10 @@ export default function EditCarScreen() {
                 return;
             }
 
-            // Extract the collection ID from the URL if it exists
             const match = image.path.match(/collections\/(.+?)\//);
             if (match) {
-                // If the path contains 'collections', use it as is
                 await deleteImage(image.path);
             } else {
-                // If the path doesn't match the expected format, try to reconstruct it
                 const filename = image.path.split('/').pop();
                 if (filename && user?.uid) {
                     const correctedPath = generateStoragePath(user.uid, 'cars', filename);
@@ -352,7 +398,6 @@ export default function EditCarScreen() {
             setCustomImages(prev => prev.filter((_, i) => i !== index));
         } catch (error: any) {
             if (error?.code === 'storage/object-not-found') {
-                // If the image doesn't exist in storage, just remove it from the UI
                 console.warn('Image not found in storage, removing from UI');
                 setCustomImages(prev => prev.filter((_, i) => i !== index));
                 return;
@@ -370,7 +415,11 @@ export default function EditCarScreen() {
         try {
             await updateCar(id as string, {
                 ...formData,
-                images: customImages,
+                images: customImages.map(img => ({
+                    uri: img.uri || '',
+                    downloadURL: typeof img.downloadURL === 'string' ? img.downloadURL : '',
+                    path: img.path || ''
+                })),
                 updatedAt: new Date(),
             });
             router.back();
@@ -381,6 +430,7 @@ export default function EditCarScreen() {
             setIsLoading(false);
         }
     };
+
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
             <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
@@ -416,240 +466,431 @@ export default function EditCarScreen() {
                 </View>
             </View>
 
-            <GestureScrollView
-                style={styles.content}
-                showsVerticalScrollIndicator={false}
-                nestedScrollEnabled={true}
+            <KeyboardAvoidingView
+                style={{ flex: 1 }}
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
             >
-                {/* Photos Section */}
-                <View style={[styles.section, {
-                    borderBottomColor: colors.border,
-                    backgroundColor: colors.background
-                }]}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>Photos</Text>
-                    <View style={styles.photosContainer}>
-                        {customImages.map((image, index) => (
-                            <DraggablePhoto
-                                key={image.uri}
-                                image={image}
-                                index={index}
-                                onReorder={handleReorderImages}
-                                onRemove={handleRemovePhoto}
-                                totalImages={customImages.length}
-                            />
-                        ))}
-                        {customImages.length < 2 && (
-                            <TouchableOpacity
-                                style={[styles.addPhotoButton, { borderColor: colors.border }]}
-                                onPress={showImagePickerOptions}
-                                activeOpacity={0.7}
-                            >
-                                <View style={styles.addPhotoContent}>
-                                    <View style={styles.addPhotoIcons}>
-                                        <Camera size={20} color={colors.primary} />
-                                        <ImageIcon size={20} color={colors.primary} />
+                <GestureScrollView
+                    style={styles.content}
+                    showsVerticalScrollIndicator={false}
+                    nestedScrollEnabled={true}
+                    keyboardShouldPersistTaps="handled"
+                    keyboardDismissMode="interactive"
+                >
+                    {/* Photos Section */}
+                    <View style={[styles.section, {
+                        borderBottomColor: colors.border,
+                        backgroundColor: colors.background
+                    }]}>
+                        <Text style={[styles.sectionTitle, { color: colors.text }]}>Photos</Text>
+                        <View style={styles.photosContainer}>
+                            {customImages.map((image, index) => (
+                                <DraggablePhoto
+                                    key={`${image.path || image.uri}-${index}`}
+                                    image={image}
+                                    index={index}
+                                    onReorder={handleReorderImages}
+                                    onRemove={handleRemovePhoto}
+                                    totalImages={customImages.length}
+                                />
+                            ))}
+                            {customImages.length < 2 && (
+                                <TouchableOpacity
+                                    style={[styles.addPhotoButton, { borderColor: colors.border }]}
+                                    onPress={showImagePickerOptions}
+                                    activeOpacity={0.7}
+                                >
+                                    <View style={styles.addPhotoContent}>
+                                        <View style={styles.addPhotoIcons}>
+                                            <Camera size={20} color={colors.primary} />
+                                            <ImageIcon size={20} color={colors.primary} />
+                                        </View>
+                                        <Text style={[styles.addPhotoText, { color: colors.primary }]}>
+                                            Add Photo
+                                        </Text>
                                     </View>
-                                    <Text style={[styles.addPhotoText, { color: colors.primary }]}>
-                                        Add Photo
-                                    </Text>
-                                </View>
-                            </TouchableOpacity>
-                        )}
+                                </TouchableOpacity>
+                            )}
+                        </View>
                     </View>
+
+                    {/* Car Details Section */}
+                    <View style={[styles.section, { borderBottomColor: colors.border }]}>
+                        <Text style={[styles.sectionTitle, { color: colors.text }]}>Car Details</Text>
+
+                        <View style={styles.formGroup}>
+                            <Text style={[styles.label, { color: colors.text }]}>Name</Text>
+                            <TextInput
+                                style={[styles.input, {
+                                    borderColor: errors.name ? '#FF3B30' : colors.border,
+                                    backgroundColor: colors.background,
+                                    color: colors.text
+                                }]}
+                                value={formData.name}
+                                onChangeText={(text) => {
+                                    setFormData(prev => ({ ...prev, name: text }));
+                                    if (errors.name) {
+                                        const newErrors = { ...errors };
+                                        delete newErrors.name;
+                                        setErrors(newErrors);
+                                    }
+                                }}
+                                placeholder="Enter car name"
+                                placeholderTextColor={colors.secondary}
+                                editable={!isLoading}
+                            />
+                            {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
+                        </View>
+
+                        <View style={styles.formGroup}>
+                            <Text style={[styles.label, { color: colors.text }]}>Toy #</Text>
+                            <TextInput
+                                style={[styles.input, {
+                                    borderColor: errors.toyNumber ? '#FF3B30' : colors.border,
+                                    backgroundColor: colors.background,
+                                    color: colors.text
+                                }]}
+                                value={formData.toyNumber}
+                                onChangeText={(text) => {
+                                    setFormData(prev => ({ ...prev, toyNumber: text }));
+                                    if (errors.toyNumber) {
+                                        const newErrors = { ...errors };
+                                        delete newErrors.toyNumber;
+                                        setErrors(newErrors);
+                                    }
+                                }}
+                                placeholder="Enter toy number"
+                                placeholderTextColor={colors.secondary}
+                                editable={!isLoading}
+                            />
+                            {errors.toyNumber && <Text style={styles.errorText}>{errors.toyNumber}</Text>}
+                        </View>
+
+                        <View style={styles.formRow}>
+                            <View style={[styles.formGroup, { flex: 1 }]}>
+                                <Text style={[styles.label, { color: colors.text }]}>Series</Text>
+                                <TextInput
+                                    style={[styles.input, {
+                                        borderColor: colors.border,
+                                        backgroundColor: colors.background,
+                                        color: colors.text
+                                    }]}
+                                    value={formData.series}
+                                    onChangeText={text => setFormData(prev => ({ ...prev, series: text }))}
+                                    placeholder="Enter series"
+                                    placeholderTextColor={colors.secondary}
+                                    editable={!isLoading}
+                                />
+                            </View>
+                            <View style={[styles.formGroup, { flex: 0.5, marginLeft: 12 }]}>
+                                <Text style={[styles.label, { color: colors.text }]}>Series #</Text>
+                                <TextInput
+                                    style={[styles.input, {
+                                        borderColor: colors.border,
+                                        backgroundColor: colors.background,
+                                        color: colors.text
+                                    }]}
+                                    value={formData.seriesNumber}
+                                    onChangeText={text => setFormData(prev => ({ ...prev, seriesNumber: text }))}
+                                    placeholder="0/10"
+                                    placeholderTextColor={colors.secondary}
+                                    editable={!isLoading}
+                                />
+                            </View>
+                        </View>
+
+                        <View style={styles.formRow}>
+                            <View style={[styles.formGroup, { flex: 1 }]}>
+                                <Text style={[styles.label, { color: colors.text }]}>Year</Text>
+                                <TextInput
+                                    style={[styles.input, {
+                                        borderColor: colors.border,
+                                        backgroundColor: colors.background,
+                                        color: colors.text
+                                    }]}
+                                    value={formData.year}
+                                    onChangeText={text => setFormData(prev => ({ ...prev, year: text }))}
+                                    placeholder="Enter year"
+                                    placeholderTextColor={colors.secondary}
+                                    keyboardType="numeric"
+                                    editable={!isLoading}
+                                />
+                            </View>
+                            <View style={[styles.formGroup, { flex: 1, marginLeft: 12 }]}>
+                                <Text style={[styles.label, { color: colors.text }]}>Year #</Text>
+                                <TextInput
+                                    style={[styles.input, {
+                                        borderColor: colors.border,
+                                        backgroundColor: colors.background,
+                                        color: colors.text
+                                    }]}
+                                    value={formData.yearNumber}
+                                    onChangeText={text => setFormData(prev => ({ ...prev, yearNumber: text }))}
+                                    placeholder="000/250"
+                                    placeholderTextColor={colors.secondary}
+                                    editable={!isLoading}
+                                />
+                            </View>
+                        </View>
+
+                        <View style={styles.formRow}>
+                            <View style={[styles.formGroup, { flex: 1 }]}>
+                                <Text style={[styles.label, { color: colors.text }]}>Color</Text>
+                                <TextInput
+                                    style={[styles.input, {
+                                        borderColor: colors.border,
+                                        backgroundColor: colors.background,
+                                        color: colors.text
+                                    }]}
+                                    value={formData.color}
+                                    onChangeText={text => setFormData(prev => ({ ...prev, color: text }))}
+                                    placeholder="Enter color"
+                                    placeholderTextColor={colors.secondary}
+                                    editable={!isLoading}
+                                />
+                            </View>
+                            <View style={[styles.formGroup, { flex: 1, marginLeft: 12 }]}>
+                                <Text style={[styles.label, { color: colors.text }]}>Tampo</Text>
+                                <TextInput
+                                    style={[styles.input, {
+                                        borderColor: colors.border,
+                                        backgroundColor: colors.background,
+                                        color: colors.text
+                                    }]}
+                                    value={formData.tampo}
+                                    onChangeText={text => setFormData(prev => ({ ...prev, tampo: text }))}
+                                    placeholder="Enter tampo"
+                                    placeholderTextColor={colors.secondary}
+                                    editable={!isLoading}
+                                />
+                            </View>
+                        </View>
+
+                        <View style={styles.formRow}>
+                            <View style={[styles.formGroup, { flex: 1 }]}>
+                                <Text style={[styles.label, { color: colors.text }]}>Base Color</Text>
+                                <TextInput
+                                    style={[styles.input, {
+                                        borderColor: colors.border,
+                                        backgroundColor: colors.background,
+                                        color: colors.text
+                                    }]}
+                                    value={formData.baseColor}
+                                    onChangeText={text => setFormData(prev => ({ ...prev, baseColor: text }))}
+                                    placeholder="Enter base color"
+                                    placeholderTextColor={colors.secondary}
+                                    editable={!isLoading}
+                                />
+                            </View>
+                            <View style={[styles.formGroup, { flex: 1, marginLeft: 12 }]}>
+                                <Text style={[styles.label, { color: colors.text }]}>Window Color</Text>
+                                <TextInput
+                                    style={[styles.input, {
+                                        borderColor: colors.border,
+                                        backgroundColor: colors.background,
+                                        color: colors.text
+                                    }]}
+                                    value={formData.windowColor}
+                                    onChangeText={text => setFormData(prev => ({ ...prev, windowColor: text }))}
+                                    placeholder="Enter window color"
+                                    placeholderTextColor={colors.secondary}
+                                    editable={!isLoading}
+                                />
+                            </View>
+                        </View>
+
+                        <View style={styles.formRow}>
+                            <View style={[styles.formGroup, { flex: 1 }]}>
+                                <Text style={[styles.label, { color: colors.text }]}>Interior Color</Text>
+                                <TextInput
+                                    style={[styles.input, {
+                                        borderColor: colors.border,
+                                        backgroundColor: colors.background,
+                                        color: colors.text
+                                    }]}
+                                    value={formData.interiorColor}
+                                    onChangeText={text => setFormData(prev => ({ ...prev, interiorColor: text }))}
+                                    placeholder="Enter interior color"
+                                    placeholderTextColor={colors.secondary}
+                                    editable={!isLoading}
+                                />
+                            </View>
+                            <View style={[styles.formGroup, { flex: 1, marginLeft: 12 }]}>
+                                <Text style={[styles.label, { color: colors.text }]}>Wheel Type</Text>
+                                <TextInput
+                                    style={[styles.input, {
+                                        borderColor: colors.border,
+                                        backgroundColor: colors.background,
+                                        color: colors.text
+                                    }]}
+                                    value={formData.wheelType}
+                                    onChangeText={text => setFormData(prev => ({ ...prev, wheelType: text }))}
+                                    placeholder="Enter wheel type"
+                                    placeholderTextColor={colors.secondary}
+                                    editable={!isLoading}
+                                />
+                            </View>
+                        </View>
+                    </View>
+
+{/* Purchase Details Section */ }
+    <View style={[styles.section, { borderBottomColor: colors.border }]}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Purchase Details</Text>
+
+        <View style={styles.formRow}>
+            <View style={[styles.formGroup, { flex: 1 }]}>
+                <Text style={[styles.label, { color: colors.text }]}>Purchase Date</Text>
+                <TouchableOpacity
+                    style={[styles.input, {
+                        borderColor: colors.border,
+                        backgroundColor: colors.background
+                    }]}
+                    onPress={showDatePicker}
+                    disabled={isLoading}
+                >
+                    <View style={styles.dateInput}>
+                        <Calendar size={16} color={colors.text} style={styles.dateIcon} />
+                        <Text style={[styles.dateText, {
+                            color: formData.purchaseDate ? colors.text : colors.secondary
+                        }]}>
+                            {formData.purchaseDate || 'Select date'}
+                        </Text>
+                    </View>
+                </TouchableOpacity>
+            </View>
+            <View style={[styles.formGroup, { flex: 1, marginLeft: 12 }]}>
+                <Text style={[styles.label, { color: colors.text }]}>Price</Text>
+                <TextInput
+                    style={[styles.input, {
+                        borderColor: colors.border,
+                        backgroundColor: colors.background,
+                        color: colors.text
+                    }]}
+                    value={formData.purchasePrice}
+                    onChangeText={text => setFormData(prev => ({ ...prev, purchasePrice: text }))}
+                    placeholder="0.00"
+                    placeholderTextColor={colors.secondary}
+                    keyboardType="decimal-pad"
+                    editable={!isLoading}
+                />
+            </View>
+        </View>
+
+        <View style={styles.formGroup}>
+            <Text style={[styles.label, { color: colors.text }]}>Store</Text>
+            <TextInput
+                style={[styles.input, {
+                    borderColor: colors.border,
+                    backgroundColor: colors.background,
+                    color: colors.text
+                }]}
+                value={formData.purchaseStore}
+                onChangeText={text => setFormData(prev => ({ ...prev, purchaseStore: text }))}
+                placeholder="Enter store name"
+                placeholderTextColor={colors.secondary}
+                editable={!isLoading}
+            />
+        </View>
+
+        <View style={styles.formGroup}>
+            <Text style={[styles.label, { color: colors.text }]}>Notes</Text>
+            <TextInput
+                style={[styles.input, styles.textArea, {
+                    borderColor: colors.border,
+                    backgroundColor: colors.background,
+                    color: colors.text
+                }]}
+                value={formData.notes}
+                onChangeText={text => setFormData(prev => ({ ...prev, notes: text }))}
+                placeholder="Add any notes about this item..."
+                placeholderTextColor={colors.secondary}
+                multiline
+                numberOfLines={4}
+                editable={!isLoading}
+            />
+        </View>
+    </View>
+
+    {/* Custom Fields Section */}
+    <View style={[styles.section, { borderBottomColor: colors.border }]}>
+        <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Custom Fields</Text>
+            {formData.customFields.length < 10 && (
+                                    <TouchableOpacity
+                                        style={[styles.addFieldButton, { backgroundColor: colors.primary }]}
+                                        onPress={handleAddField}
+                                    >
+                                        <Text style={styles.addFieldButtonText}>Add Field</Text>
+                                    </TouchableOpacity>
+            )}
+        </View>
+        
+        {formData.customFields.map((field, index) => (
+            <View key={index} style={styles.customFieldRow}>
+                <View style={styles.customFieldInputs}>
+                    <TextInput
+                        style={[styles.customFieldName, {
+                            borderColor: colors.border,
+                            backgroundColor: colors.background,
+                            color: colors.text
+                        }]}
+                        value={field.name}
+                        onChangeText={(text) => {
+                            const newFields = [...formData.customFields];
+                            newFields[index].name = text.slice(0, 50);
+                            setFormData(prev => ({
+                                ...prev,
+                                customFields: newFields
+                            }));
+                        }}
+                        placeholder="Field name"
+                        placeholderTextColor={colors.secondary}
+                        maxLength={50}
+                    />
+                    <TextInput
+                        style={[styles.customFieldValue, {
+                            borderColor: colors.border,
+                            backgroundColor: colors.background,
+                            color: colors.text
+                        }]}
+                        value={field.value}
+                        onChangeText={(text) => {
+                            const newFields = [...formData.customFields];
+                            newFields[index].value = text.slice(0, 50);
+                            setFormData(prev => ({
+                                ...prev,
+                                customFields: newFields
+                            }));
+                        }}
+                        placeholder="Value"
+                        placeholderTextColor={colors.secondary}
+                        maxLength={50}
+                    />
                 </View>
+                <TouchableOpacity
+                    style={styles.removeFieldButton}
+                    onPress={() => {
+                        setFormData(prev => ({
+                            ...prev,
+                            customFields: prev.customFields.filter((_, i) => i !== index)
+                        }));
+                    }}
+                >
+                    <X size={20} color={colors.text} />
+                </TouchableOpacity>
+            </View>
+        ))}
+        
+        {formData.customFields.length === 0 && (
+            <Text style={[styles.noFieldsText, { color: colors.secondary }]}>
+                Add up to 10 custom fields to store additional information
+            </Text>
+        )}
+    </View>
+                    </GestureScrollView>
+                </KeyboardAvoidingView>
 
-                {/* Car Details Section */}
-                <View style={[styles.section, { borderBottomColor: colors.border }]}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>Car Details</Text>
-
-                    <View style={styles.formGroup}>
-                        <Text style={[styles.label, { color: colors.text }]}>Name</Text>
-                        <TextInput
-                            style={[styles.input, {
-                                borderColor: errors.name ? '#FF3B30' : colors.border,
-                                backgroundColor: colors.background,
-                                color: colors.text
-                            }]}
-                            value={formData.name}
-                            onChangeText={(text) => {
-                                setFormData(prev => ({ ...prev, name: text }));
-                                if (errors.name) {
-                                    const newErrors = { ...errors };
-                                    delete newErrors.name;
-                                    setErrors(newErrors);
-                                }
-                            }}
-                            placeholder="Enter car name"
-                            placeholderTextColor={colors.secondary}
-                            editable={!isLoading}
-                        />
-                        {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
-                    </View>
-
-                    <View style={styles.formRow}>
-                        <View style={[styles.formGroup, { flex: 1 }]}>
-                            <Text style={[styles.label, { color: colors.text }]}>Series</Text>
-                            <TextInput
-                                style={[styles.input, {
-                                    borderColor: colors.border,
-                                    backgroundColor: colors.background,
-                                    color: colors.text
-                                }]}
-                                value={formData.series}
-                                onChangeText={text => setFormData(prev => ({ ...prev, series: text }))}
-                                placeholder="Enter series"
-                                placeholderTextColor={colors.secondary}
-                                editable={!isLoading}
-                            />
-                        </View>
-                        <View style={[styles.formGroup, { flex: 0.5, marginLeft: 12 }]}>
-                            <Text style={[styles.label, { color: colors.text }]}>Series #</Text>
-                            <TextInput
-                                style={[styles.input, {
-                                    borderColor: colors.border,
-                                    backgroundColor: colors.background,
-                                    color: colors.text
-                                }]}
-                                value={formData.seriesNumber}
-                                onChangeText={text => setFormData(prev => ({ ...prev, seriesNumber: text }))}
-                                placeholder="0/10"
-                                placeholderTextColor={colors.secondary}
-                                editable={!isLoading}
-                            />
-                        </View>
-                    </View>
-
-                    <View style={styles.formRow}>
-                        <View style={[styles.formGroup, { flex: 1 }]}>
-                            <Text style={[styles.label, { color: colors.text }]}>Year</Text>
-                            <TextInput
-                                style={[styles.input, {
-                                    borderColor: colors.border,
-                                    backgroundColor: colors.background,
-                                    color: colors.text
-                                }]}
-                                value={formData.year}
-                                onChangeText={text => setFormData(prev => ({ ...prev, year: text }))}
-                                placeholder="Enter year"
-                                placeholderTextColor={colors.secondary}
-                                keyboardType="numeric"
-                                editable={!isLoading}
-                            />
-                        </View>
-                        <View style={[styles.formGroup, { flex: 1, marginLeft: 12 }]}>
-                            <Text style={[styles.label, { color: colors.text }]}>Year #</Text>
-                            <TextInput
-                                style={[styles.input, {
-                                    borderColor: colors.border,
-                                    backgroundColor: colors.background,
-                                    color: colors.text
-                                }]}
-                                value={formData.yearNumber}
-                                onChangeText={text => setFormData(prev => ({ ...prev, yearNumber: text }))}
-                                placeholder="000/250"
-                                placeholderTextColor={colors.secondary}
-                                editable={!isLoading}
-                            />
-                        </View>
-                    </View>
-
-                    <View style={styles.formGroup}>
-                        <Text style={[styles.label, { color: colors.text }]}>Color</Text>
-                        <TextInput
-                            style={[styles.input, {
-                                borderColor: colors.border,
-                                backgroundColor: colors.background,
-                                color: colors.text
-                            }]}
-                            value={formData.color}
-                            onChangeText={text => setFormData(prev => ({ ...prev, color: text }))}
-                            placeholder="Enter color"
-                            placeholderTextColor={colors.secondary}
-                            editable={!isLoading}
-                        />
-                    </View>
-                </View>
-
-                {/* Purchase Details Section */}
-                <View style={[styles.section, { borderBottomColor: colors.border }]}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>Purchase Details</Text>
-
-                    <View style={styles.formRow}>
-                        <View style={[styles.formGroup, { flex: 1 }]}>
-                            <Text style={[styles.label, { color: colors.text }]}>Purchase Date</Text>
-                            <TouchableOpacity
-                                style={[styles.input, {
-                                    borderColor: colors.border,
-                                    backgroundColor: colors.background
-                                }]}
-                                onPress={showDatePicker}
-                                disabled={isLoading}
-                            >
-                                <View style={styles.dateInput}>
-                                    <Calendar size={16} color={colors.text} style={styles.dateIcon} />
-                                    <Text style={[styles.dateText, {
-                                        color: formData.purchaseDate ? colors.text : colors.secondary
-                                    }]}>
-                                        {formData.purchaseDate || 'Select date'}
-                                    </Text>
-                                </View>
-                            </TouchableOpacity>
-                        </View>
-                        <View style={[styles.formGroup, { flex: 1, marginLeft: 12 }]}>
-                            <Text style={[styles.label, { color: colors.text }]}>Price</Text>
-                            <TextInput
-                                style={[styles.input, {
-                                    borderColor: colors.border,
-                                    backgroundColor: colors.background,
-                                    color: colors.text
-                                }]}
-                                value={formData.purchasePrice}
-                                onChangeText={text => setFormData(prev => ({ ...prev, purchasePrice: text }))}
-                                placeholder="0.00"
-                                placeholderTextColor={colors.secondary}
-                                keyboardType="decimal-pad"
-                                editable={!isLoading}
-                            />
-                        </View>
-                    </View>
-
-                    <View style={styles.formGroup}>
-                        <Text style={[styles.label, { color: colors.text }]}>Store</Text>
-                        <TextInput
-                            style={[styles.input, {
-                                borderColor: colors.border,
-                                backgroundColor: colors.background,
-                                color: colors.text
-                            }]}
-                            value={formData.purchaseStore}
-                            onChangeText={text => setFormData(prev => ({ ...prev, purchaseStore: text }))}
-                            placeholder="Enter store name"
-                            placeholderTextColor={colors.secondary}
-                            editable={!isLoading}
-                        />
-                    </View>
-
-                    <View style={styles.formGroup}>
-                        <Text style={[styles.label, { color: colors.text }]}>Notes</Text>
-                        <TextInput
-                            style={[styles.input, styles.textArea, {
-                                borderColor: colors.border,
-                                backgroundColor: colors.background,
-                                color: colors.text
-                            }]}
-                            value={formData.notes}
-                            onChangeText={text => setFormData(prev => ({ ...prev, notes: text }))}
-                            placeholder="Add any notes about this item..."
-                            placeholderTextColor={colors.secondary}
-                            multiline
-                            numberOfLines={4}
-                            editable={!isLoading}
-                        />
-                    </View>
-                </View>
-            </GestureScrollView>
-
-            {/* Premium Banner */}
             {user?.plan === 'Free' && (
                 <View style={[styles.premiumBanner, { backgroundColor: colors.primary }]}>
                     <Text style={styles.premiumText}>
@@ -827,6 +1068,59 @@ const styles = StyleSheet.create({
     },
     premiumText: {
         color: '#fff',
+        textAlign: 'center',
+        fontSize: 14,
+        fontFamily: 'Inter-Regular',
+    },
+    sectionHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    addFieldButton: {
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 6,
+    },
+    addFieldButtonText: {
+        color: '#fff',
+        fontSize: 14,
+        fontFamily: 'Inter-Medium',
+    },
+    customFieldRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    customFieldInputs: {
+        flex: 1,
+        flexDirection: 'row',
+        gap: 12,
+    },
+    customFieldName: {
+        flex: 1,
+        height: 48,
+        borderWidth: 1,
+        borderRadius: 8,
+        paddingHorizontal: 12,
+        fontSize: 16,
+        fontFamily: 'Inter-Regular',
+    },
+    customFieldValue: {
+        flex: 1,
+        height: 48,
+        borderWidth: 1,
+        borderRadius: 8,
+        paddingHorizontal: 12,
+        fontSize: 16,
+        fontFamily: 'Inter-Regular',
+    },
+    removeFieldButton: {
+        padding: 8,
+        marginLeft: 8,
+    },
+    noFieldsText: {
         textAlign: 'center',
         fontSize: 14,
         fontFamily: 'Inter-Regular',

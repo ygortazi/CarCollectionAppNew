@@ -19,7 +19,7 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from 'config/firebase';
-import type { Car, UserPreferences, StorageImage } from 'types/models';
+import type { Car, CatalogCar, UserPreferences, StorageImage } from 'types/models';
 
 const BATCH_SIZE = 500;
 const PAGE_SIZE = 20;
@@ -119,22 +119,88 @@ export async function deleteCar(carId: string) {
     });
 }
 
-export async function getCar(carId: string) {
+export async function getCar(carId: string, source: 'catalog' | 'collection' = 'collection'): Promise<Car | CatalogCar | null> {
     return handleFirestoreOperation(async () => {
-        const docSnap = await getDoc(doc(db, 'cars', carId));
-        if (!docSnap.exists()) return null;
+        try {
+            if (source === 'catalog') {
+                const catalogRef = doc(db, 'catalog', carId);
+                const catalogSnap = await getDoc(catalogRef);
 
-        const data = docSnap.data() as FirestoreCar;
-        if (data.deleted) return null;
+                if (catalogSnap.exists()) {
+                    const data = catalogSnap.data();
+                    const images = Array.isArray(data.photos || data.images) ?
+                        (data.photos || data.images).map((url: string) => ({
+                            uri: url,
+                            downloadURL: url,
+                            path: url
+                        })) : [];
 
-        return {
-            ...data,
-            createdAt: convertTimestampToDate(data.createdAt),
-            updatedAt: convertTimestampToDate(data.updatedAt)
-        } as Car;
+                    return {
+                        id: catalogSnap.id,
+                        name: data.name || '',
+                        series: data.series || '',
+                        seriesNumber: data.seriesNumber || '',
+                        year: data.year || '',
+                        yearNumber: data.yearNumber || '',
+                        toyNumber: data.toyNumber || '',
+                        color: data.color || '',
+                        tampo: data.tampo || '',
+                        baseColor: data.baseColor || '',
+                        windowColor: data.windowColor || '',
+                        interiorColor: data.interiorColor || '',
+                        wheelType: data.wheelType || '',
+                        images: images,
+                        createdAt: convertTimestampToDate(data.createdAt || new Date()),
+                        updatedAt: convertTimestampToDate(data.updatedAt || new Date())
+                    } as CatalogCar;
+                }
+            } else {
+                const carRef = doc(db, 'cars', carId);
+                const carSnap = await getDoc(carRef);
+
+                if (carSnap.exists() && !carSnap.data()?.deleted) {
+                    const data = carSnap.data();
+                    const images = Array.isArray(data.photos || data.images) ?
+                        (data.photos || data.images).map((url: string) => ({
+                            uri: url,
+                            downloadURL: url,
+                            path: url
+                        })) : [];
+
+                    return {
+                        id: carSnap.id,
+                        userId: data.userId,
+                        name: data.name || '',
+                        series: data.series || '',
+                        seriesNumber: data.seriesNumber || '',
+                        year: data.year || '',
+                        yearNumber: data.yearNumber || '',
+                        toyNumber: data.toyNumber || '',
+                        color: data.color || '',
+                        tampo: data.tampo || '',
+                        baseColor: data.baseColor || '',
+                        windowColor: data.windowColor || '',
+                        interiorColor: data.interiorColor || '',
+                        wheelType: data.wheelType || '',
+                        purchaseDate: data.purchaseDate || '',
+                        purchasePrice: data.purchasePrice || '',
+                        purchaseStore: data.purchaseStore || '',
+                        notes: data.notes || '',
+                        customFields: data.customFields || [],
+                        images: images,
+                        createdAt: convertTimestampToDate(data.createdAt || new Date()),
+                        updatedAt: convertTimestampToDate(data.updatedAt || new Date())
+                    } as Car;
+                }
+            }
+
+            return null;
+        } catch (error) {
+            console.error('Error in getCar:', error);
+            throw error;
+        }
     });
 }
-
 interface GetUserCarsOptions {
     lastDoc?: DocumentSnapshot;
     pageSize?: number;
@@ -248,26 +314,88 @@ export async function getUserWishlist(userId: string, options: GetUserCarsOption
         };
     });
 }
-
-export async function addToCollection(userId: string, car: Car) {
+export async function addToCollection(userId: string, catalogCar: CatalogCar) {
     return handleFirestoreOperation(async () => {
-        const { id, ...carData } = car;
-        return addCar({
-            ...carData,
+        const carData: Omit<Car, 'id' | 'createdAt' | 'updatedAt'> = {
             userId,
+            name: catalogCar.name,
+            series: catalogCar.series,
+            seriesNumber: catalogCar.seriesNumber,
+            year: catalogCar.year,
+            yearNumber: catalogCar.yearNumber,
+            toyNumber: catalogCar.toyNumber,  // Keep the toyNumber as reference
+            color: catalogCar.color,
+            tampo: catalogCar.tampo,
+            baseColor: catalogCar.baseColor,
+            windowColor: catalogCar.windowColor,
+            interiorColor: catalogCar.interiorColor,
+            wheelType: catalogCar.wheelType,
+            images: catalogCar.images,
+            purchaseDate: '',
+            purchasePrice: '',
+            purchaseStore: '',
+            notes: '',
+            customFields: []
+        };
+
+        // Create a new document with auto-generated ID
+        const carsRef = collection(db, 'cars');
+        const newCarRef = doc(carsRef);
+
+        const timestamp = serverTimestamp();
+        await setDoc(newCarRef, {
+            ...carData,
+            id: newCarRef.id,
+            createdAt: timestamp,
+            updatedAt: timestamp,
+            deleted: false
         });
+
+        return {
+            ...carData,
+            id: newCarRef.id,
+            createdAt: new Date(),
+            updatedAt: new Date()
+        } as Car;
     });
 }
 
-export async function addToWishlist(userId: string, car: Omit<Car, 'id' | 'createdAt' | 'updatedAt'>) {
+export async function isInWishlist(userId: string, toyNumber: string): Promise<boolean> {
     return handleFirestoreOperation(async () => {
-        validateCarData({ ...car, userId });
+        const wishlistQuery = query(
+            collection(db, 'wishlist'),
+            where('userId', '==', userId),
+            where('toyNumber', '==', toyNumber),
+            where('deleted', '==', false)
+        );
 
+        const snapshot = await getDocs(wishlistQuery);
+        return !snapshot.empty;
+    });
+}
+
+export async function addToWishlist(userId: string, catalogCar: CatalogCar) {
+    return handleFirestoreOperation(async () => {
+        // Check if item already exists in wishlist
+        const wishlistQuery = query(
+            collection(db, 'wishlist'),
+            where('userId', '==', userId),
+            where('toyNumber', '==', catalogCar.toyNumber),
+            where('deleted', '==', false)
+        );
+
+        const existingItems = await getDocs(wishlistQuery);
+        if (!existingItems.empty) {
+            throw new Error('This item is already in your wishlist');
+        }
+
+        // Proceed with adding to wishlist if not found
         const wishlistRef = collection(db, 'wishlist');
         const newWishlistRef = doc(wishlistRef);
 
         const wishlistData = {
-            ...car,
+            userId,
+            ...catalogCar,
             id: newWishlistRef.id,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
@@ -296,7 +424,7 @@ export async function getCatalog(options: GetUserCarsOptions = {}) {
 
         let catalogQuery = query(
             collection(db, 'catalog'),
-            orderBy('createdAt', 'desc'),
+            orderBy('toyNumber', 'asc'),
             limit(pageSize)
         );
 
@@ -305,8 +433,37 @@ export async function getCatalog(options: GetUserCarsOptions = {}) {
         }
 
         const snapshot = await getDocs(catalogQuery);
+
         return {
-            items: snapshot.docs.map(doc => doc.data() as Car),
+            items: snapshot.docs.map(doc => {
+                const data = doc.data();
+                // Initialize empty images array if no photos exist
+                const images = Array.isArray(data.photos) ?
+                    data.photos.map((url: string) => ({
+                        uri: url,
+                        downloadURL: url,
+                        path: url
+                    })) : [];
+
+                return {
+                    id: doc.id,
+                    name: data.name || '',
+                    series: data.series || '',
+                    seriesNumber: data.seriesNumber || '',
+                    year: data.year || '',
+                    yearNumber: data.yearNumber || '',
+                    toyNumber: data.toyNumber || '',
+                    color: data.color || '',
+                    tampo: data.tampo || '',
+                    baseColor: data.baseColor || '',
+                    windowColor: data.windowColor || '',
+                    interiorColor: data.interiorColor || '',
+                    wheelType: data.wheelType || '',
+                    images: images,
+                    createdAt: convertTimestampToDate(data.createdAt || new Date()),
+                    updatedAt: convertTimestampToDate(data.updatedAt || new Date())
+                } as CatalogCar;
+            }),
             lastDoc: snapshot.docs[snapshot.docs.length - 1],
             hasMore: snapshot.docs.length === pageSize
         };

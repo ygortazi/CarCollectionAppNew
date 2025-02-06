@@ -1,25 +1,29 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Image,
-  FlatList,
-  Platform,
-  ActivityIndicator,
-  StyleProp,
-  ViewStyle,
-  Alert,
+    View,
+    Text,
+    StyleSheet,
+    TouchableOpacity,
+    Image,
+    FlatList,
+    Platform,
+    ActivityIndicator,
+    StyleProp,
+    ViewStyle,
+    Alert,
+    Animated,
+    Pressable,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import {
-  Grid,
-  List,
-  Filter,
-  PlusCircle,
-  Trash2,
-  ChevronDown,
+    Grid,
+    List,
+    Filter,
+    PlusCircle,
+    Trash2,
+    ChevronDown,
+    Check,
 } from 'lucide-react-native';
 import { TextInput } from 'react-native-gesture-handler';
 import { useAuth } from 'context/auth';
@@ -28,23 +32,26 @@ import { Colors } from 'constants/Colors';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { getUserWishlist, addToCollection, removeFromWishlist } from 'services/firestone';
-import type { Car } from 'types/models';
+import { useFilterStore } from '../../stores/filterStore';
+import { FilterProcessor } from '../../utils/FilterProcessor';
+import type { CatalogCar } from 'types/models';
 
-type PaginatedResponse = {
-  items: Car[];
-  lastDoc: any;
-  hasMore: boolean;
-};
-
-interface LoadingStates {
-  fetchingCars: boolean;
-  refreshing: boolean;
-  movingToCollection: boolean;
+function getImageSource(images: Array<{ downloadURL?: string }>) {
+    if (!images || !images[0] || !images[0].downloadURL) {
+        return require('assets/placeholder-image.png');
+    }
+    return { uri: images[0].downloadURL };
 }
 
+type PaginatedResponse = {
+    items: CatalogCar[];
+    lastDoc: any;
+    hasMore: boolean;
+};
+
 interface SortOption {
-  label: string;
-  value: 'recent' | 'name' | 'series';
+    label: string;
+    value: 'recent' | 'purchase' | 'name' | 'priceHigh' | 'priceLow';
 }
 
 interface ActionButtonsProps {
@@ -52,82 +59,149 @@ interface ActionButtonsProps {
     onDelete: () => void;
     style?: StyleProp<ViewStyle>;
     colors: any;
+    isSelected?: boolean;
+    onSelect?: () => void;
+    selectionMode: boolean;
+}
+
+interface LoadingStates {
+    fetchingCars: boolean;
+    refreshing: boolean;
+    movingToCollection: boolean;
+    deleting: boolean;
 }
 
 const sortOptions: SortOption[] = [
-  { label: 'Recently Added', value: 'recent' },
-  { label: 'Name A-Z', value: 'name' },
-  { label: 'Series', value: 'series' }
+    { label: 'Recently Added', value: 'recent' },
+    { label: 'Name A-Z', value: 'name' },
+    { label: 'Price High-Low', value: 'priceHigh' },
+    { label: 'Price Low-High', value: 'priceLow' }
 ];
 
-const ActionButtons: React.FC<ActionButtonsProps> = ({ 
-    onAddToCollection, 
-    onDelete, 
+const ActionButtons: React.FC<ActionButtonsProps> = ({
+    onAddToCollection,
+    onDelete,
     style,
-    colors 
-  }) => (
+    colors,
+    isSelected,
+    onSelect,
+    selectionMode
+}) => (
     <View style={[styles.actionButtons, style]}>
-      <TouchableOpacity 
-        style={[styles.actionButton, { backgroundColor: colors.surface }]} 
-        onPress={onAddToCollection}
-        activeOpacity={0.7}
-      >
-        <PlusCircle size={20} color={colors.primary} />
-      </TouchableOpacity>
-      <TouchableOpacity 
-        style={[styles.actionButton, { backgroundColor: colors.surface }]} 
-        onPress={onDelete}
-        activeOpacity={0.7}
-      >
-        <Trash2 size={20} color={colors.text} />
-      </TouchableOpacity>
+        {selectionMode ? (
+            <TouchableOpacity
+                style={[
+                    styles.selectButton,
+                    { backgroundColor: isSelected ? colors.primary : colors.surface }
+                ]}
+                onPress={onSelect}
+                activeOpacity={0.7}
+            >
+                <Check size={20} color={isSelected ? '#fff' : colors.text} />
+            </TouchableOpacity>
+        ) : (
+            <>
+                <TouchableOpacity
+                    style={[styles.actionButton, { backgroundColor: colors.surface }]}
+                    onPress={onAddToCollection}
+                    activeOpacity={0.7}
+                >
+                    <PlusCircle size={20} color={colors.primary} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={[styles.actionButton, { backgroundColor: colors.surface }]}
+                    onPress={onDelete}
+                    activeOpacity={0.7}
+                >
+                    <Trash2 size={20} color={colors.text} />
+                </TouchableOpacity>
+            </>
+        )}
     </View>
-  );
+);
 
 export default function WishlistScreen() {
-  const router = useRouter();
-  const { theme } = useTheme();
-  const colors = Colors[theme];
-  const { user } = useAuth();
+    const router = useRouter();
+    const { theme } = useTheme();
+    const colors = Colors[theme];
+    const { user } = useAuth();
+    const { filters, setFilters } = useFilterStore();
 
-  const [wishlist, setWishlist] = useState<Car[]>([]);
-  const [loading, setLoading] = useState<LoadingStates>({
-    fetchingCars: true,
-    refreshing: false,
-    movingToCollection: false
-  });
-  const [isGridView, setIsGridView] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<SortOption['value']>('recent');
-  const [isSortModalVisible, setIsSortModalVisible] = useState(false);
+    const [wishlist, setWishlist] = useState<CatalogCar[]>([]);
+    const [loading, setLoading] = useState<LoadingStates>({
+        fetchingCars: true,
+        refreshing: false,
+        movingToCollection: false,
+        deleting: false
+    });
+    const [isGridView, setIsGridView] = useState(true);
+    const [isSortModalVisible, setIsSortModalVisible] = useState(false);
+    const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+    const [selectionMode, setSelectionMode] = useState(false);
+    const [longPressAnim] = useState(new Animated.Value(1));
 
-  useEffect(() => {
-    fetchWishlist();
-  }, [user]);
+    const toggleItemSelection = useCallback((carId: string) => {
+        setSelectedItems(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(carId)) {
+                newSet.delete(carId);
+                if (newSet.size === 0) {
+                    setSelectionMode(false);
+                }
+            } else {
+                newSet.add(carId);
+            }
+            return newSet;
+        });
+    }, []);
 
-  const fetchWishlist = async (isRefreshing = false) => {
-    if (!user) return;
-  
-    setLoading(prev => ({
-      ...prev,
-      [isRefreshing ? 'refreshing' : 'fetchingCars']: true
-    }));
-  
-    try {
-      const response = await getUserWishlist(user.uid);
-      setWishlist(response.items); // Set just the items array
-    } catch (error) {
-      console.error('Error fetching wishlist:', error);
-      Alert.alert('Error', 'Failed to load your wishlist.');
-    } finally {
-      setLoading(prev => ({
-        ...prev,
-        [isRefreshing ? 'refreshing' : 'fetchingCars']: false
-      }));
-    }
-  };
+    const handleLongPress = useCallback((carId: string) => {
+        setSelectionMode(true);
+        toggleItemSelection(carId);
+        Animated.sequence([
+            Animated.timing(longPressAnim, {
+                toValue: 0.95,
+                duration: 100,
+                useNativeDriver: true,
+            }),
+            Animated.timing(longPressAnim, {
+                toValue: 1,
+                duration: 100,
+                useNativeDriver: true,
+            }),
+        ]).start();
+    }, [toggleItemSelection]);
 
-    const handleAddToCollection = async (car: Car) => {
+    const handleBatchDelete = async () => {
+        if (selectedItems.size === 0) return;
+
+        Alert.alert(
+            'Delete Selected Items',
+            `Are you sure you want to delete ${selectedItems.size} items from your wishlist?`,
+            [
+                { text: 'Cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        setLoading(prev => ({ ...prev, deleting: true }));
+                        try {
+                            await Promise.all(
+                                Array.from(selectedItems).map(id => removeFromWishlist(id))
+                            );
+                            await fetchWishlist();
+                        } catch (error) {
+                            Alert.alert('Error', 'Failed to delete selected items.');
+                        } finally {
+                            setLoading(prev => ({ ...prev, deleting: false }));
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
+    const handleAddToCollection = async (car: CatalogCar) => {
         if (!user) return;
         setLoading(prev => ({ ...prev, movingToCollection: true }));
         try {
@@ -143,484 +217,622 @@ export default function WishlistScreen() {
         }
     };
 
-  const handleDelete = async (carId: string) => {
-    try {
-      await removeFromWishlist(carId);
-      await fetchWishlist();
-    } catch (error) {
-      console.error('Error removing from wishlist:', error);
-      Alert.alert('Error', 'Failed to remove car from wishlist.');
-    }
-  };
+    const handleDelete = async (carId: string) => {
+        try {
+            await removeFromWishlist(carId);
+            await fetchWishlist();
+        } catch (error) {
+            console.error('Error removing from wishlist:', error);
+            Alert.alert('Error', 'Failed to remove car from wishlist.');
+        }
+    };
 
-  const sortedWishlist = useCallback(() => {
-    let sorted = [...wishlist];
-    switch (sortBy) {
-      case 'name':
-        sorted.sort((a, b) => a.name.localeCompare(b.name));
-        break;
-      case 'series':
-        sorted.sort((a, b) => a.series.localeCompare(b.series));
-        break;
-      default:
-        sorted.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-    }
+    const fetchWishlist = async (isRefreshing = false) => {
+        if (!user) return;
 
-    if (searchQuery) {
-      sorted = sorted.filter(car => 
-        car.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        car.series.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
+        setLoading(prev => ({
+            ...prev,
+            [isRefreshing ? 'refreshing' : 'fetchingCars']: true
+        }));
 
-    return sorted;
-  }, [wishlist, sortBy, searchQuery]);
+        try {
+            const response = await getUserWishlist(user.uid);
+            const wishlistWithDates = response.items.map(item => ({
+                ...item,
+                createdAt: item.createdAt ? new Date(item.createdAt) : new Date(),
+                updatedAt: item.updatedAt ? new Date(item.updatedAt) : new Date()
+            }));
+            setWishlist(wishlistWithDates);
+            setSelectedItems(new Set());
+            setSelectionMode(false);
+        } catch (error) {
+            console.error('Error fetching wishlist:', error);
+            Alert.alert('Error', 'Failed to load your wishlist.');
+        } finally {
+            setLoading(prev => ({
+                ...prev,
+                [isRefreshing ? 'refreshing' : 'fetchingCars']: false
+            }));
+        }
+    };
 
-  const renderGridItem = useCallback(({ item }: { item: Car }) => (
-    <TouchableOpacity 
-      style={[styles.gridCard, { 
-        backgroundColor: colors.background,
-        borderColor: colors.border 
-      }]}
-      onPress={() => router.push({
-        pathname: '/(details)/car-details-catalog',
-        params: { id: item.id }
-      })}
-      activeOpacity={0.7}
-    >
-      <Image
-        source={{ uri: item.images[0]?.downloadURL || '/api/placeholder/400/300' }}
-        style={styles.gridImage}
-      />
-      <View style={styles.gridCardContent}>
-        <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={2}>
-          {item.name}
-        </Text>
-        <Text style={[styles.cardSubtitle, { color: colors.secondary }]}>
-          {item.series} • {item.seriesNumber}
-        </Text>
-        <Text style={[styles.cardDetail, { color: colors.secondary }]}>
-          {item.year} • {item.yearNumber}
-        </Text>
-        <Text style={[styles.cardDetail, { color: colors.secondary }]}>
-          Color: {item.color}
-        </Text>
-        <ActionButtons
-          style={styles.gridActions}
-          onAddToCollection={() => handleAddToCollection(item)}
-          onDelete={() => handleDelete(item.id)}
-          colors={colors}
-        />
-      </View>
-    </TouchableOpacity>
-  ), [router, handleAddToCollection, handleDelete, colors]);
-  
-  const renderListItem = useCallback(({ item }: { item: Car }) => (
-    <TouchableOpacity 
-      style={[styles.listCard, { 
-        backgroundColor: colors.background,
-        borderColor: colors.border 
-      }]}
-      onPress={() => router.push({
-        pathname: '/(details)/car-details-catalog',
-        params: { id: item.id }
-      })}
-      activeOpacity={0.7}
-    >
-      <Image
-        source={{ uri: item.images[0]?.downloadURL || '/api/placeholder/400/300' }}
-        style={styles.listImage}
-      />
-      <View style={styles.listCardContent}>
-        <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={2}>
-          {item.name}
-        </Text>
-        <Text style={[styles.cardSubtitle, { color: colors.secondary }]}>
-          {item.series} • {item.seriesNumber}
-        </Text>
-        <Text style={[styles.cardDetail, { color: colors.secondary }]}>
-          {item.year} • {item.yearNumber}
-        </Text>
-        <Text style={[styles.cardDetail, { color: colors.secondary }]}>
-          Color: {item.color}
-        </Text>
-      </View>
-      <ActionButtons
-        style={styles.listActions}
-        onAddToCollection={() => handleAddToCollection(item)}
-        onDelete={() => handleDelete(item.id)}
-        colors={colors}
-      />
-    </TouchableOpacity>
-  ), [router, handleAddToCollection, handleDelete, colors]);
-
-  if (loading.fetchingCars) {
-    return (
-      <View style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center' }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
+    useFocusEffect(
+        useCallback(() => {
+            fetchWishlist();
+        }, [user])
     );
-  }
 
-  return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
-      
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <View>
-          <Text style={[styles.title, { color: colors.text }]}>My Wishlist</Text>
-          <Text style={[styles.statsText, { color: colors.secondary }]}>
-            {wishlist.length}{user?.plan === 'Free' ? '/10' : ''} items
-          </Text>
-        </View>
-        <View style={[styles.viewToggle, { backgroundColor: colors.surface }]}>
-          <TouchableOpacity 
+    const handleRefresh = useCallback(() => {
+        fetchWishlist(true);
+    }, [user]);
+
+    const sortedAndFilteredWishlist = useMemo(() => {
+        return FilterProcessor.applyFilters(wishlist as any, filters);
+    }, [wishlist, filters]);
+
+    const renderGridItem = useCallback(({ item, index }: { item: CatalogCar; index: number }) => (
+        <Pressable
             style={[
-              styles.toggleButton,
-              isGridView && [styles.toggleButtonActive, { backgroundColor: colors.background }]
-            ]} 
-            onPress={() => setIsGridView(true)}
-            activeOpacity={0.7}
-          >
-            <Grid size={20} color={isGridView ? colors.primary : colors.secondary} />
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[
-              styles.toggleButton,
-              !isGridView && [styles.toggleButtonActive, { backgroundColor: colors.background }]
+                styles.gridCard,
+                {
+                    backgroundColor: colors.background,
+                    borderColor: colors.border,
+                    width: '47%',
+                    marginRight: index % 2 === 0 ? '3%' : 0,
+                },
+                selectedItems.has(item.id) && styles.selectedCard
             ]}
-            onPress={() => setIsGridView(false)}
-            activeOpacity={0.7}
-          >
-            <List size={20} color={!isGridView ? colors.primary : colors.secondary} />
-          </TouchableOpacity>
-        </View>
-      </View>
-  
-      {/* Search Bar and Filters */}
-      <View style={[styles.searchContainer, { borderBottomColor: colors.border }]}>
-        <View style={styles.searchRow}>
-          <View style={styles.searchBarWrapper}>
-            <TextInput
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder="Search wishlist..."
-              style={[styles.searchInput, { 
-                backgroundColor: colors.surface,
-                color: colors.text 
-              }]}
-              placeholderTextColor={colors.secondary}
-            />
-          </View>
-          <TouchableOpacity 
-            style={[styles.sortButton, { backgroundColor: colors.surface }]}
-            onPress={() => setIsSortModalVisible(true)}
-            activeOpacity={0.7}
-          >
-            <ChevronDown size={20} color={colors.text} />
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.filterButton, { backgroundColor: colors.surface }]}
-            onPress={() => router.push('/modals/filter')}
-            activeOpacity={0.7}
-          >
-            <Filter size={20} color={colors.text} />
-          </TouchableOpacity>
-        </View>
-      </View>
-  
-      {/* Content */}
-      {loading.fetchingCars ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      ) : (
-        <FlatList
-          data={sortedWishlist()}
-          renderItem={isGridView ? renderGridItem : renderListItem}
-          keyExtractor={item => item.id}
-          numColumns={isGridView ? 2 : 1}
-          key={isGridView ? 'grid' : 'list'}
-          contentContainerStyle={[
-            styles.listContent,
-            wishlist.length === 0 && styles.emptyListContent
-          ]}
-          onRefresh={() => fetchWishlist(true)}
-          refreshing={loading.refreshing}
-          ListEmptyComponent={
-            <View style={styles.emptyStateContainer}>
-              <Text style={[styles.emptyStateText, { color: colors.text }]}>
-                No items in your wishlist yet
-              </Text>
-              <Text style={[styles.emptyStateSubtext, { color: colors.secondary }]}>
-                Browse the catalog to add items to your wishlist
-              </Text>
-            </View>
-          }
-        />
-      )}
-  
-      {/* Premium Banner */}
-      {user?.plan === 'Free' && (
-        <View style={[styles.premiumBanner, { backgroundColor: colors.primary }]}>
-          <Text style={styles.premiumText}>
-            Upgrade to premium to add unlimited items to your wishlist!
-          </Text>
-        </View>
-      )}
-  
-      {/* Sort Modal */}
-      {isSortModalVisible && (
-        <TouchableOpacity 
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setIsSortModalVisible(false)}
+            onPress={() => {
+                if (selectionMode) {
+                    toggleItemSelection(item.id);
+                } else {
+                    router.push({
+                        pathname: '/(details)/car-details-catalog',
+                        params: { id: item.toyNumber }
+                    });
+                }
+            }}
+            onLongPress={() => handleLongPress(item.id)}
+            delayLongPress={300}
         >
-          <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
-            <Text style={[styles.modalTitle, { color: colors.text }]}>Sort By</Text>
-            {sortOptions.map((option) => (
-              <TouchableOpacity
-                key={option.value}
-                style={[styles.sortOption, { borderBottomColor: colors.border }]}
-                onPress={() => {
-                  setSortBy(option.value);
-                  setIsSortModalVisible(false);
-                }}
-              >
-                <Text style={[
-                  styles.sortOptionText,
-                  { color: sortBy === option.value ? colors.primary : colors.text }
-                ]}>
-                  {option.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </TouchableOpacity>
-      )}
-    </SafeAreaView>
-  );
+            <Animated.View style={{ transform: [{ scale: longPressAnim }] }}>
+                <View style={styles.imageContainer}>
+                    <Image
+                        source={getImageSource(item.images)}
+                        style={styles.gridImage}
+                    />
+                    {item.images.length > 1 && (
+                        <View style={styles.customImageIndicator}>
+                            {item.images.map((_, index) => (
+                                <View key={index} style={styles.indicatorDot} />
+                            ))}
+                        </View>
+                    )}
+                </View>
+                <View style={styles.gridCardContent}>
+                    <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={2}>
+                        {item.name}
+                    </Text>
+                    <Text style={[styles.cardSubtitle, { color: colors.secondary }]}>
+                        {item.series} • {item.seriesNumber}
+                    </Text>
+                    <Text style={[styles.cardDetail, { color: colors.secondary }]}>
+                        {item.year} • {item.yearNumber}
+                    </Text>
+                    <View style={styles.detailsGrid}>
+                        <Text style={[styles.cardDetail, { color: colors.secondary }]}>
+                            Color: {item.color}
+                        </Text>
+                        <Text style={[styles.cardDetail, { color: colors.secondary }]}>
+                            Tampo: {item.tampo}
+                        </Text>
+                        <Text style={[styles.cardDetail, { color: colors.secondary }]}>
+                            Base: {item.baseColor}
+                        </Text>
+                        <Text style={[styles.cardDetail, { color: colors.secondary }]}>
+                            Wheels: {item.wheelType}
+                        </Text>
+                    </View>
+                    <ActionButtons
+                        style={styles.gridActions}
+                        onAddToCollection={() => handleAddToCollection(item)}
+                        onDelete={() => handleDelete(item.id)}
+                        colors={colors}
+                        isSelected={selectedItems.has(item.id)}
+                        onSelect={() => toggleItemSelection(item.id)}
+                        selectionMode={selectionMode}
+                    />
+                </View>
+            </Animated.View>
+        </Pressable>
+    ), [router, handleAddToCollection, handleDelete, colors, selectedItems, selectionMode, toggleItemSelection]);
+    const renderListItem = useCallback(({ item }: { item: CatalogCar }) => (
+        <Pressable
+            style={[
+                styles.listCard,
+                { backgroundColor: colors.background, borderColor: colors.border },
+                selectedItems.has(item.id) && styles.selectedCard
+            ]}
+            onPress={() => {
+                if (selectionMode) {
+                    toggleItemSelection(item.id);
+                } else {
+                    router.push({
+                        pathname: '/(details)/car-details-catalog',
+                        params: { id: item.toyNumber }
+                    });
+                }
+            }}
+            onLongPress={() => handleLongPress(item.id)}
+            delayLongPress={300}
+        >
+            <Animated.View style={[
+                styles.listCardInner,
+                { transform: [{ scale: longPressAnim }] }
+            ]}>
+                <View style={styles.imageContainer}>
+                    <Image
+                        source={getImageSource(item.images)}
+                        style={styles.listImage}
+                    />
+                    {item.images.length > 1 && (
+                        <View style={styles.customImageIndicator}>
+                            {item.images.map((_, index) => (
+                                <View key={index} style={styles.indicatorDot} />
+                            ))}
+                        </View>
+                    )}
+                </View>
+                <View style={styles.listCardContent}>
+                    <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={2}>
+                        {item.name}
+                    </Text>
+                    <Text style={[styles.cardSubtitle, { color: colors.secondary }]}>
+                        {item.series} • {item.seriesNumber}
+                    </Text>
+                    <Text style={[styles.cardDetail, { color: colors.secondary }]}>
+                        {item.year} • {item.yearNumber}
+                    </Text>
+                    <View style={styles.detailsGrid}>
+                        <Text style={[styles.cardDetail, { color: colors.secondary }]}>
+                            Color: {item.color}
+                        </Text>
+                        <Text style={[styles.cardDetail, { color: colors.secondary }]}>
+                            Tampo: {item.tampo}
+                        </Text>
+                        <Text style={[styles.cardDetail, { color: colors.secondary }]}>
+                            Base: {item.baseColor}
+                        </Text>
+                        <Text style={[styles.cardDetail, { color: colors.secondary }]}>
+                            Wheels: {item.wheelType}
+                        </Text>
+                    </View>
+                </View>
+                <ActionButtons
+                    style={styles.listActions}
+                    onAddToCollection={() => handleAddToCollection(item)}
+                    onDelete={() => handleDelete(item.id)}
+                    colors={colors}
+                    isSelected={selectedItems.has(item.id)}
+                    onSelect={() => toggleItemSelection(item.id)}
+                    selectionMode={selectionMode}
+                />
+            </Animated.View>
+        </Pressable>
+    ), [router, handleAddToCollection, handleDelete, colors, selectedItems, selectionMode, toggleItemSelection]);
+
+    if (loading.fetchingCars) {
+        return (
+            <View style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center' }]}>
+                <ActivityIndicator size="large" color={colors.primary} />
+            </View>
+        );
+    }
+
+    return (
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+            <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
+
+            <View style={[styles.header, { borderBottomColor: colors.border }]}>
+                <View>
+                    <Text style={[styles.title, { color: colors.text }]}>My Wishlist</Text>
+                    <Text style={[styles.statsText, { color: colors.secondary }]}>
+                        {wishlist.length}{user?.plan === 'Free' ? '/10' : ''} items
+                    </Text>
+                </View>
+                <View style={[styles.viewToggle, { backgroundColor: colors.surface }]}>
+                    <TouchableOpacity
+                        style={[
+                            styles.toggleButton,
+                            isGridView && [styles.toggleButtonActive, { backgroundColor: colors.background }]
+                        ]}
+                        onPress={() => setIsGridView(true)}
+                        activeOpacity={0.7}
+                    >
+                        <Grid size={20} color={isGridView ? colors.primary : colors.secondary} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[
+                            styles.toggleButton,
+                            !isGridView && [styles.toggleButtonActive, { backgroundColor: colors.background }]
+                        ]}
+                        onPress={() => setIsGridView(false)}
+                        activeOpacity={0.7}
+                    >
+                        <List size={20} color={!isGridView ? colors.primary : colors.secondary} />
+                    </TouchableOpacity>
+                </View>
+            </View>
+
+            <View style={[styles.searchContainer, {
+                backgroundColor: colors.background,
+                borderBottomColor: colors.border
+            }]}>
+                <View style={styles.searchRow}>
+                    <View style={styles.searchBarWrapper}>
+                        <TextInput
+                            value={filters.searchQuery}
+                            onChangeText={(text) => setFilters({ searchQuery: text })}
+                            placeholder="Search wishlist..."
+                            style={[styles.searchInput, {
+                                backgroundColor: colors.surface,
+                                color: colors.text
+                            }]}
+                            placeholderTextColor={colors.secondary}
+                        />
+                    </View>
+                    <TouchableOpacity
+                        style={[styles.sortButton, { backgroundColor: colors.surface }]}
+                        onPress={() => setIsSortModalVisible(true)}
+                        activeOpacity={0.7}
+                    >
+                        <ChevronDown size={20} color={colors.text} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[styles.filterButton, { backgroundColor: colors.surface }]}
+                        onPress={() => router.push({
+                            pathname: '/modals/filter',
+                            params: {
+                                data: JSON.stringify(wishlist)
+                            }
+                        })}
+                        activeOpacity={0.7}
+                    >
+                        <Filter size={20} color={colors.text} />
+                    </TouchableOpacity>
+                </View>
+            </View>
+
+            <FlatList
+                data={sortedAndFilteredWishlist}
+                renderItem={isGridView ? renderGridItem : renderListItem}
+                keyExtractor={item => item.id}
+                numColumns={isGridView ? 2 : 1}
+                key={isGridView ? 'grid' : 'list'}
+                contentContainerStyle={[
+                    styles.listContent,
+                    wishlist.length === 0 && styles.emptyListContent
+                ]}
+                onRefresh={handleRefresh}
+                refreshing={loading.refreshing}
+                ListEmptyComponent={
+                    <View style={styles.emptyStateContainer}>
+                        <Text style={[styles.emptyStateText, { color: colors.text }]}>
+                            No items in your wishlist yet
+                        </Text>
+                        <Text style={[styles.emptyStateSubtext, { color: colors.secondary }]}>
+                            Browse the catalog to add items to your wishlist
+                        </Text>
+                    </View>
+                }
+            />
+
+            {selectionMode && (
+                <TouchableOpacity
+                    style={styles.batchDeleteButton}
+                    onPress={handleBatchDelete}
+                    activeOpacity={0.7}
+                >
+                    <Trash2 size={24} color="#fff" />
+                    <Text style={styles.batchDeleteText}>
+                        Delete Selected ({selectedItems.size})
+                    </Text>
+                </TouchableOpacity>
+            )}
+
+            {user?.plan === 'Free' && (
+                <View style={[styles.premiumBanner, { backgroundColor: colors.primary }]}>
+                    <Text style={styles.premiumText}>
+                        Upgrade to premium to add unlimited items to your wishlist!
+                    </Text>
+                </View>
+            )}
+
+            {isSortModalVisible && (
+                <TouchableOpacity
+                    style={styles.modalOverlay}
+                    activeOpacity={1}
+                    onPress={() => setIsSortModalVisible(false)}
+                >
+                    <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
+                        <Text style={[styles.modalTitle, { color: colors.text }]}>Sort By</Text>
+                        {sortOptions.map((option) => (
+                            <TouchableOpacity
+                                key={option.value}
+                                style={[styles.sortOption, { borderBottomColor: colors.border }]}
+                                onPress={() => {
+                                    setFilters({ sortBy: option.value });
+                                    setIsSortModalVisible(false);
+                                }}
+                            >
+                                <Text style={[
+                                    styles.sortOptionText,
+                                    { color: filters.sortBy === option.value ? colors.primary : colors.text }
+                                ]}>
+                                    {option.label}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                </TouchableOpacity>
+            )}
+        </SafeAreaView>
+    );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E8E8E8',
-  },
-  title: {
-    fontSize: 24,
-    fontFamily: 'Inter-Bold',
-    color: '#2A2A2A',
-  },
-  statsText: {
-    fontSize: 12,
-    marginTop: 4,
-    color: '#666666',
-    fontFamily: 'Inter-Regular',
-  },
-  viewToggle: {
-    flexDirection: 'row',
-    backgroundColor: '#F5F5F5',
-    borderRadius: 8,
-    padding: 4,
-  },
-  toggleButton: {
-    padding: 8,
-    borderRadius: 6,
-  },
-  toggleButtonActive: {
-    backgroundColor: '#fff',
-  },
-  searchContainer: {
-    padding: 16,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E8E8E8',
-  },
-  searchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  searchBarWrapper: {
-    flex: 1,
-  },
-  searchInput: {
-    height: 40,
-    backgroundColor: '#F5F5F5',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#2A2A2A',
-  },
-  sortButton: {
-    width: 40,
-    height: 40,
-    backgroundColor: '#F5F5F5',
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  filterButton: {
-    width: 40,
-    height: 40,
-    backgroundColor: '#F5F5F5',
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  listContent: {
-    padding: 16,
-  },
-  gridCard: {
-    flex: 1,
-    margin: 8,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    overflow: 'hidden',
-  },
-  listCard: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    overflow: 'hidden',
-  },
-  gridImage: {
-    width: '100%',
-    height: 150,
-    resizeMode: 'cover',
-  },
-  listImage: {
-    width: 100,
-    height: 100,
-    resizeMode: 'cover',
-  },
-  gridCardContent: {
-    padding: 12,
-  },
-  listCardContent: {
-    flex: 1,
-    padding: 12,
-  },
-  cardTitle: {
-    fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
-    color: '#2A2A2A',
-    marginBottom: 4,
-  },
-  cardSubtitle: {
-    fontSize: 12,
-    fontFamily: 'Inter-Regular',
-    color: '#404040',
-    marginBottom: 2,
-  },
-  cardDetail: {
-    fontSize: 11,
-    fontFamily: 'Inter-Regular',
-    color: '#666666',
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  actionButton: {
-    padding: 4,
-  },
-  gridActions: {
-    justifyContent: 'flex-end',
-    marginTop: 8,
-  },
-  listActions: {
-    flexDirection: 'column',
-    padding: 8,
-    justifyContent: 'center',
-  },
-  modalOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    padding: 16,
-    maxHeight: '80%',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
-    color: '#2A2A2A',
-    marginBottom: 16,
-  },
-  sortOption: {
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E8E8E8',
-  },
-  sortOptionText: {
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#404040',
-  },
-  premiumBanner: {
-    backgroundColor: '#0066FF',
-    padding: 12,
-  },
-  premiumText: {
-    color: '#fff',
-    textAlign: 'center',
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyListContent: {
-    flexGrow: 1,
-  },
-  emptyStateContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
-  },
-  emptyStateText: {
-    fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  emptyStateSubtext: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    textAlign: 'center',
-  },
+    container: {
+        flex: 1,
+    },
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        padding: 16,
+        borderBottomWidth: 1,
+    },
+    title: {
+        fontSize: 24,
+        fontFamily: 'Inter-Bold',
+    },
+    statsText: {
+        fontSize: 12,
+        marginTop: 4,
+        fontFamily: 'Inter-Regular',
+    },
+    viewToggle: {
+        flexDirection: 'row',
+        borderRadius: 8,
+        padding: 4,
+    },
+    toggleButton: {
+        padding: 8,
+        borderRadius: 6,
+    },
+    toggleButtonActive: {},
+    searchContainer: {
+        padding: 16,
+        borderBottomWidth: 1,
+    },
+    searchRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    searchBarWrapper: {
+        flex: 1,
+    },
+    searchInput: {
+        height: 40,
+        borderRadius: 8,
+        paddingHorizontal: 12,
+        fontSize: 16,
+        fontFamily: 'Inter-Regular',
+    },
+    sortButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 8,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    filterButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 8,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    listContent: {
+        padding: 16,
+    },
+    gridCard: {
+        flex: 1,
+        margin: 8,
+        borderRadius: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+        overflow: 'hidden',
+    },
+    listCard: {
+        flexDirection: 'row',
+        borderRadius: 12,
+        marginBottom: 16,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+        overflow: 'hidden',
+    },
+    listCardInner: {
+        flexDirection: 'row',
+        flex: 1,
+    },
+    gridImage: {
+        width: '100%',
+        height: 150,
+        resizeMode: 'contain',
+    },
+    listImage: {
+        width: 100,
+        height: 140,
+        resizeMode: 'contain',
+    },
+    gridCardContent: {
+        padding: 12,
+    },
+    listCardContent: {
+        flex: 1,
+        padding: 12,
+    },
+    cardTitle: {
+        fontSize: 14,
+        fontFamily: 'Inter-SemiBold',
+        marginBottom: 4,
+    },
+    cardSubtitle: {
+        fontSize: 12,
+        fontFamily: 'Inter-Regular',
+        marginBottom: 2,
+    },
+    cardDetail: {
+        fontSize: 11,
+        fontFamily: 'Inter-Regular',
+    },
+    actionButtons: {
+        flexDirection: 'row',
+        gap: 8,
+    },
+    actionButton: {
+        padding: 4,
+    },
+    selectButton: {
+        padding: 8,
+        borderRadius: 20,
+        width: 40,
+        height: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    gridActions: {
+        justifyContent: 'flex-end',
+        marginTop: 8,
+    },
+    listActions: {
+        flexDirection: 'column',
+        padding: 8,
+        justifyContent: 'center',
+    },
+    modalOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'flex-end',
+    },
+    modalContent: {
+        borderTopLeftRadius: 16,
+        borderTopRightRadius: 16,
+        padding: 16,
+        maxHeight: '80%',
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontFamily: 'Inter-SemiBold',
+        marginBottom: 16,
+    },
+    sortOption: {
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+    },
+    sortOptionText: {
+        fontSize: 16,
+        fontFamily: 'Inter-Regular',
+    },
+    premiumBanner: {
+        padding: 12,
+    },
+    premiumText: {
+        color: '#fff',
+        textAlign: 'center',
+        fontSize: 14,
+        fontFamily: 'Inter-Regular',
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    emptyListContent: {
+        flexGrow: 1,
+    },
+    emptyStateContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 32,
+    },
+    emptyStateText: {
+        fontSize: 18,
+        fontFamily: 'Inter-SemiBold',
+        textAlign: 'center',
+        marginBottom: 8,
+    },
+    emptyStateSubtext: {
+        fontSize: 14,
+        fontFamily: 'Inter-Regular',
+        textAlign: 'center',
+    },
+    imageContainer: {
+        position: 'relative',
+    },
+    customImageIndicator: {
+        position: 'absolute',
+        bottom: 8,
+        right: 8,
+        flexDirection: 'row',
+        gap: 4,
+    },
+    indicatorDot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: '#fff',
+    },
+    detailsGrid: {
+        marginTop: 4,
+        gap: 2,
+    },
+    selectedCard: {
+        backgroundColor: 'rgba(0, 102, 255, 0.1)',
+    },
+    batchDeleteButton: {
+        position: 'absolute',
+        bottom: Platform.OS === 'ios' ? 32 : 16,
+        left: 16,
+        right: 16,
+        backgroundColor: '#FF3B30',
+        padding: 16,
+        borderRadius: 28,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
+    },
+    batchDeleteText: {
+        color: '#fff',
+        fontSize: 16,
+        fontFamily: 'Inter-SemiBold',
+    }
 });

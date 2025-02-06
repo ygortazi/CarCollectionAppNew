@@ -3,36 +3,24 @@
   "WorkspaceRootPath": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\_layout.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:app\\_layout.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\(tabs)\\index.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:app\\(tabs)\\index.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\(tabs)\\wishlist.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:app\\(tabs)\\wishlist.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\(tabs)\\collection.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:app\\(tabs)\\collection.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\utils\\FilterProcessor.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:utils\\FilterProcessor.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\(details)\\car-details.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:app\\(details)\\car-details.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\modals\\filter.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:app\\modals\\filter.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\types\\models.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:types\\models.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\services\\FilterHistory.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:services\\FilterHistory.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\stores\\filterStore.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:stores\\filterStore.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\(details)\\add-car.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:app\\(details)\\add-car.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\components\\ImageGallery.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:components\\ImageGallery.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\(details)\\edit-car.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
@@ -43,16 +31,52 @@
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:components\\ImagePickerOptions.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\utils\\image-handling.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:utils\\image-handling.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\(details)\\add-car.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:app\\(details)\\add-car.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\(details)\\car-details.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:app\\(details)\\car-details.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\types\\storage.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:types\\storage.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\services\\firestone.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:services\\firestone.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\constants\\Colors.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:constants\\Colors.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\(details)\\car-details-catalog.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:app\\(details)\\car-details-catalog.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\types\\models.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:types\\models.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\_layout.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:app\\_layout.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\utils\\FilterProcessor.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:utils\\FilterProcessor.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\modals\\filter.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:app\\modals\\filter.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\services\\FilterHistory.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:services\\FilterHistory.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\stores\\filterStore.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:stores\\filterStore.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\utils\\image-handling.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:utils\\image-handling.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\context\\auth.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
@@ -65,14 +89,6 @@
     {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\(auth)\\login.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:app\\(auth)\\login.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\services\\firestone.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:services\\firestone.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\config\\firebase.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:config\\firebase.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
@@ -91,24 +107,12 @@
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:firebase.d.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\(tabs)\\index.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:app\\(tabs)\\index.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\(tabs)\\wishlist.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:app\\(tabs)\\wishlist.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\tsconfig.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:tsconfig.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\(details)\\_layout.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:app\\(details)\\_layout.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\constants\\Colors.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:constants\\Colors.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\package.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
@@ -122,98 +126,97 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 5,
+          "SelectedChildIndex": 4,
           "Children": [
             {
               "$type": "Document",
-              "DocumentIndex": 3,
-              "Title": "filter.tsx",
-              "DocumentMoniker": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\modals\\filter.tsx",
-              "RelativeDocumentMoniker": "app\\modals\\filter.tsx",
-              "ToolTip": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\modals\\filter.tsx",
-              "RelativeToolTip": "app\\modals\\filter.tsx",
-              "ViewState": "AgIAAIMAAAAAAAAAAAAhwJ4AAAAAAAAAAAAAAA==",
+              "DocumentIndex": 4,
+              "Title": "ImageGallery.tsx",
+              "DocumentMoniker": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\components\\ImageGallery.tsx",
+              "RelativeDocumentMoniker": "components\\ImageGallery.tsx",
+              "ToolTip": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\components\\ImageGallery.tsx",
+              "RelativeToolTip": "components\\ImageGallery.tsx",
+              "ViewState": "AgIAADUAAAAAAAAAAAAIwEcAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
-              "WhenOpened": "2025-01-31T18:11:38.822Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 5,
-              "Title": "FilterHistory.ts",
-              "DocumentMoniker": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\services\\FilterHistory.ts",
-              "RelativeDocumentMoniker": "services\\FilterHistory.ts",
-              "ToolTip": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\services\\FilterHistory.ts",
-              "RelativeToolTip": "services\\FilterHistory.ts",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABAAAAABAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
-              "WhenOpened": "2025-01-31T18:10:46.12Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "FilterProcessor.ts",
-              "DocumentMoniker": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\utils\\FilterProcessor.ts",
-              "RelativeDocumentMoniker": "utils\\FilterProcessor.ts",
-              "ToolTip": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\utils\\FilterProcessor.ts",
-              "RelativeToolTip": "utils\\FilterProcessor.ts",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAACIAAAABAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
-              "WhenOpened": "2025-01-31T18:09:44.302Z",
+              "WhenOpened": "2025-02-04T04:04:50.122Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 1,
+              "Title": "wishlist.tsx",
+              "DocumentMoniker": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\(tabs)\\wishlist.tsx",
+              "RelativeDocumentMoniker": "app\\(tabs)\\wishlist.tsx",
+              "ToolTip": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\(tabs)\\wishlist.tsx",
+              "RelativeToolTip": "app\\(tabs)\\wishlist.tsx",
+              "ViewState": "AgIAACIDAAAAAAAAAAAwwEUDAAADAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2025-02-03T16:13:06.748Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "car-details.tsx",
+              "DocumentMoniker": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\(details)\\car-details.tsx",
+              "RelativeDocumentMoniker": "app\\(details)\\car-details.tsx",
+              "ToolTip": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\(details)\\car-details.tsx",
+              "RelativeToolTip": "app\\(details)\\car-details.tsx",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA8AAAAQAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2025-02-04T04:17:44.785Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
               "Title": "collection.tsx",
               "DocumentMoniker": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\(tabs)\\collection.tsx",
               "RelativeDocumentMoniker": "app\\(tabs)\\collection.tsx",
               "ToolTip": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\(tabs)\\collection.tsx",
               "RelativeToolTip": "app\\(tabs)\\collection.tsx",
-              "ViewState": "AgIAAPQBAAAAAAAAAAAQwAYCAAA0AAAAAAAAAA==",
+              "ViewState": "AgIAADABAAAAAAAAAAAQwEEBAAAaAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
-              "WhenOpened": "2025-01-31T13:43:20.734Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 4,
-              "Title": "models.ts",
-              "DocumentMoniker": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\types\\models.ts",
-              "RelativeDocumentMoniker": "types\\models.ts",
-              "ToolTip": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\types\\models.ts",
-              "RelativeToolTip": "types\\models.ts",
-              "ViewState": "AgIAABUAAAAAAAAAAAAowCcAAAAOAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
-              "WhenOpened": "2025-01-28T22:32:51.843Z",
+              "WhenOpened": "2025-02-04T04:06:39.033Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 0,
-              "Title": "_layout.tsx",
-              "DocumentMoniker": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\_layout.tsx",
-              "RelativeDocumentMoniker": "app\\_layout.tsx",
-              "ToolTip": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\_layout.tsx",
-              "RelativeToolTip": "app\\_layout.tsx",
-              "ViewState": "AgIAACQAAAAAAAAAAAAIwD4AAAAKAAAAAAAAAA==",
+              "Title": "index.tsx",
+              "DocumentMoniker": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\(tabs)\\index.tsx",
+              "RelativeDocumentMoniker": "app\\(tabs)\\index.tsx",
+              "ToolTip": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\(tabs)\\index.tsx",
+              "RelativeToolTip": "app\\(tabs)\\index.tsx",
+              "ViewState": "AgIAAA4AAAAAAAAAAAAgwCAAAAATAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
-              "WhenOpened": "2025-01-28T00:46:40.932Z",
+              "WhenOpened": "2025-02-04T04:00:31.672Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "edit-car.tsx",
+              "DocumentMoniker": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\(details)\\edit-car.tsx",
+              "RelativeDocumentMoniker": "app\\(details)\\edit-car.tsx",
+              "ToolTip": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\(details)\\edit-car.tsx",
+              "RelativeToolTip": "app\\(details)\\edit-car.tsx",
+              "ViewState": "AgIAADkBAAAAAAAAAAAQwEsBAAATAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2025-02-04T13:14:25.477Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 6,
-              "Title": "filterStore.ts",
-              "DocumentMoniker": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\stores\\filterStore.ts",
-              "RelativeDocumentMoniker": "stores\\filterStore.ts",
-              "ToolTip": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\stores\\filterStore.ts",
-              "RelativeToolTip": "stores\\filterStore.ts",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABkAAAAEAAAAAAAAAA==",
+              "Title": "ImagePickerOptions.tsx",
+              "DocumentMoniker": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\components\\ImagePickerOptions.tsx",
+              "RelativeDocumentMoniker": "components\\ImagePickerOptions.tsx",
+              "ToolTip": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\components\\ImagePickerOptions.tsx",
+              "RelativeToolTip": "components\\ImagePickerOptions.tsx",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAIAAAAAYAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
-              "WhenOpened": "2025-01-31T18:08:34.99Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-01-30T21:45:13.634Z"
             },
             {
               "$type": "Document",
@@ -223,40 +226,133 @@
               "RelativeDocumentMoniker": "app\\(details)\\add-car.tsx",
               "ToolTip": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\(details)\\add-car.tsx",
               "RelativeToolTip": "app\\(details)\\add-car.tsx",
-              "ViewState": "AgIAALYCAAAAAAAAAAAQwMoCAAAEAAAAAAAAAA==",
+              "ViewState": "AgIAAOwAAAAAAAAAAAApwAsBAAAHAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
-              "WhenOpened": "2025-01-31T02:49:31.954Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-01-31T02:49:31.954Z"
             },
             {
               "$type": "Document",
               "DocumentIndex": 8,
-              "Title": "edit-car.tsx",
-              "DocumentMoniker": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\(details)\\edit-car.tsx",
-              "RelativeDocumentMoniker": "app\\(details)\\edit-car.tsx",
-              "ToolTip": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\(details)\\edit-car.tsx",
-              "RelativeToolTip": "app\\(details)\\edit-car.tsx",
-              "ViewState": "AgIAAAwBAAAAAAAAAAAQwCgBAAAkAAAAAAAAAA==",
+              "Title": "storage.ts",
+              "DocumentMoniker": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\types\\storage.ts",
+              "RelativeDocumentMoniker": "types\\storage.ts",
+              "ToolTip": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\types\\storage.ts",
+              "RelativeToolTip": "types\\storage.ts",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAABAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
-              "WhenOpened": "2025-01-31T01:04:36.156Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-02-04T12:53:37.482Z"
             },
             {
               "$type": "Document",
               "DocumentIndex": 9,
-              "Title": "ImagePickerOptions.tsx",
-              "DocumentMoniker": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\components\\ImagePickerOptions.tsx",
-              "RelativeDocumentMoniker": "components\\ImagePickerOptions.tsx",
-              "ToolTip": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\components\\ImagePickerOptions.tsx",
-              "RelativeToolTip": "components\\ImagePickerOptions.tsx",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAAXAAAAAAAAAA==",
+              "Title": "firestone.ts",
+              "DocumentMoniker": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\services\\firestone.ts",
+              "RelativeDocumentMoniker": "services\\firestone.ts",
+              "ToolTip": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\services\\firestone.ts",
+              "RelativeToolTip": "services\\firestone.ts",
+              "ViewState": "AgIAADUBAAAAAAAAAAAYwEABAAAiAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
-              "WhenOpened": "2025-01-30T21:45:13.634Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-02-04T03:59:07.504Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 12,
+              "Title": "models.ts",
+              "DocumentMoniker": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\types\\models.ts",
+              "RelativeDocumentMoniker": "types\\models.ts",
+              "ToolTip": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\types\\models.ts",
+              "RelativeToolTip": "types\\models.ts",
+              "ViewState": "AgIAABUAAAAAAAAAAAAowCcAAAAOAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2025-01-28T22:32:51.843Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "car-details-catalog.tsx",
+              "DocumentMoniker": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\(details)\\car-details-catalog.tsx",
+              "RelativeDocumentMoniker": "app\\(details)\\car-details-catalog.tsx",
+              "ToolTip": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\(details)\\car-details-catalog.tsx",
+              "RelativeToolTip": "app\\(details)\\car-details-catalog.tsx",
+              "ViewState": "AgIAACIAAAAAAAAAAAAIwC0AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2025-01-29T03:37:50.592Z"
             },
             {
               "$type": "Document",
               "DocumentIndex": 10,
+              "Title": "Colors.ts",
+              "DocumentMoniker": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\constants\\Colors.ts",
+              "RelativeDocumentMoniker": "constants\\Colors.ts",
+              "ToolTip": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\constants\\Colors.ts",
+              "RelativeToolTip": "constants\\Colors.ts",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABkAAAAZAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2025-01-28T00:48:46.515Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 13,
+              "Title": "_layout.tsx",
+              "DocumentMoniker": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\_layout.tsx",
+              "RelativeDocumentMoniker": "app\\_layout.tsx",
+              "ToolTip": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\_layout.tsx",
+              "RelativeToolTip": "app\\_layout.tsx",
+              "ViewState": "AgIAACQAAAAAAAAAAAAIwD4AAAAKAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2025-01-28T00:46:40.932Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 14,
+              "Title": "FilterProcessor.ts",
+              "DocumentMoniker": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\utils\\FilterProcessor.ts",
+              "RelativeDocumentMoniker": "utils\\FilterProcessor.ts",
+              "ToolTip": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\utils\\FilterProcessor.ts",
+              "RelativeToolTip": "utils\\FilterProcessor.ts",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAACIAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2025-01-31T18:09:44.302Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 16,
+              "Title": "FilterHistory.ts",
+              "DocumentMoniker": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\services\\FilterHistory.ts",
+              "RelativeDocumentMoniker": "services\\FilterHistory.ts",
+              "ToolTip": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\services\\FilterHistory.ts",
+              "RelativeToolTip": "services\\FilterHistory.ts",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABAAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2025-01-31T18:10:46.12Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 15,
+              "Title": "filter.tsx",
+              "DocumentMoniker": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\modals\\filter.tsx",
+              "RelativeDocumentMoniker": "app\\modals\\filter.tsx",
+              "ToolTip": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\modals\\filter.tsx",
+              "RelativeToolTip": "app\\modals\\filter.tsx",
+              "ViewState": "AgIAAIMAAAAAAAAAAAAhwJ4AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2025-01-31T18:11:38.822Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 17,
+              "Title": "filterStore.ts",
+              "DocumentMoniker": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\stores\\filterStore.ts",
+              "RelativeDocumentMoniker": "stores\\filterStore.ts",
+              "ToolTip": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\stores\\filterStore.ts",
+              "RelativeToolTip": "stores\\filterStore.ts",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABkAAAAEAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2025-01-31T18:08:34.99Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 18,
               "Title": "image-handling.ts",
               "DocumentMoniker": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\utils\\image-handling.ts",
               "RelativeDocumentMoniker": "utils\\image-handling.ts",
@@ -264,48 +360,11 @@
               "RelativeToolTip": "utils\\image-handling.ts",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAAbAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
-              "WhenOpened": "2025-01-30T21:00:21.116Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-01-30T21:00:21.116Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 12,
-              "Title": "car-details-catalog.tsx",
-              "DocumentMoniker": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\(details)\\car-details-catalog.tsx",
-              "RelativeDocumentMoniker": "app\\(details)\\car-details-catalog.tsx",
-              "ToolTip": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\(details)\\car-details-catalog.tsx",
-              "RelativeToolTip": "app\\(details)\\car-details-catalog.tsx",
-              "ViewState": "AgIAADEBAAAAAAAAAAAiwFMBAAAGAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
-              "WhenOpened": "2025-01-29T03:37:50.592Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 11,
-              "Title": "car-details.tsx",
-              "DocumentMoniker": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\(details)\\car-details.tsx",
-              "RelativeDocumentMoniker": "app\\(details)\\car-details.tsx",
-              "ToolTip": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\(details)\\car-details.tsx",
-              "RelativeToolTip": "app\\(details)\\car-details.tsx",
-              "ViewState": "AgIAAB8AAAAAAAAAAAAtwCIAAAABAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
-              "WhenOpened": "2025-01-29T03:32:37.677Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 16,
-              "Title": "firestone.ts",
-              "DocumentMoniker": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\services\\firestone.ts",
-              "RelativeDocumentMoniker": "services\\firestone.ts",
-              "ToolTip": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\services\\firestone.ts",
-              "RelativeToolTip": "services\\firestone.ts",
-              "ViewState": "AgIAAKYAAAAAAAAAAAAmwM0AAAABAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
-              "WhenOpened": "2025-01-28T02:50:30.302Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 14,
+              "DocumentIndex": 20,
               "Title": "register.tsx",
               "DocumentMoniker": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\(auth)\\register.tsx",
               "RelativeDocumentMoniker": "app\\(auth)\\register.tsx",
@@ -317,7 +376,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 15,
+              "DocumentIndex": 21,
               "Title": "login.tsx",
               "DocumentMoniker": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\(auth)\\login.tsx",
               "RelativeDocumentMoniker": "app\\(auth)\\login.tsx",
@@ -329,7 +388,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 13,
+              "DocumentIndex": 19,
               "Title": "auth.tsx",
               "DocumentMoniker": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\context\\auth.tsx",
               "RelativeDocumentMoniker": "context\\auth.tsx",
@@ -341,19 +400,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 17,
-              "Title": "firebase.ts",
-              "DocumentMoniker": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\config\\firebase.ts",
-              "RelativeDocumentMoniker": "config\\firebase.ts",
-              "ToolTip": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\config\\firebase.ts",
-              "RelativeToolTip": "config\\firebase.ts",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABUAAAAuAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
-              "WhenOpened": "2025-01-28T00:58:06.164Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 18,
+              "DocumentIndex": 22,
               "Title": "app.json",
               "DocumentMoniker": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app.json",
               "RelativeDocumentMoniker": "app.json",
@@ -365,7 +412,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 19,
+              "DocumentIndex": 23,
               "Title": "googleAuth.ts",
               "DocumentMoniker": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\services\\googleAuth.ts",
               "RelativeDocumentMoniker": "services\\googleAuth.ts",
@@ -377,7 +424,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 20,
+              "DocumentIndex": 24,
               "Title": "google-services.json",
               "DocumentMoniker": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\google-services.json",
               "RelativeDocumentMoniker": "google-services.json",
@@ -389,7 +436,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 21,
+              "DocumentIndex": 25,
               "Title": "firebase.d.ts",
               "DocumentMoniker": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\firebase.d.ts",
               "RelativeDocumentMoniker": "firebase.d.ts",
@@ -401,31 +448,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 22,
-              "Title": "index.tsx",
-              "DocumentMoniker": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\(tabs)\\index.tsx",
-              "RelativeDocumentMoniker": "app\\(tabs)\\index.tsx",
-              "ToolTip": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\(tabs)\\index.tsx",
-              "RelativeToolTip": "app\\(tabs)\\index.tsx",
-              "ViewState": "AgIAAA8AAAAAAAAAAAAAAB4AAAAaAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
-              "WhenOpened": "2025-01-28T00:40:26.961Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 23,
-              "Title": "wishlist.tsx",
-              "DocumentMoniker": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\(tabs)\\wishlist.tsx",
-              "RelativeDocumentMoniker": "app\\(tabs)\\wishlist.tsx",
-              "ToolTip": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\(tabs)\\wishlist.tsx",
-              "RelativeToolTip": "app\\(tabs)\\wishlist.tsx",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABEAAAAHAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
-              "WhenOpened": "2025-01-28T01:09:16.67Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 24,
+              "DocumentIndex": 26,
               "Title": "tsconfig.json",
               "DocumentMoniker": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\tsconfig.json",
               "RelativeDocumentMoniker": "tsconfig.json",
@@ -437,7 +460,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 25,
+              "DocumentIndex": 27,
               "Title": "_layout.tsx",
               "DocumentMoniker": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\app\\(details)\\_layout.tsx",
               "RelativeDocumentMoniker": "app\\(details)\\_layout.tsx",
@@ -449,19 +472,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 26,
-              "Title": "Colors.ts",
-              "DocumentMoniker": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\constants\\Colors.ts",
-              "RelativeDocumentMoniker": "constants\\Colors.ts",
-              "ToolTip": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\constants\\Colors.ts",
-              "RelativeToolTip": "constants\\Colors.ts",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAAAXAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
-              "WhenOpened": "2025-01-28T00:48:46.515Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 27,
+              "DocumentIndex": 28,
               "Title": "package.json",
               "DocumentMoniker": "C:\\Users\\User1\\car-collection-app-new\\car-collection-app-new\\package.json",
               "RelativeDocumentMoniker": "package.json",

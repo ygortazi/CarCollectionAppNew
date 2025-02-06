@@ -22,9 +22,11 @@ import { useTheme } from '../../context/theme';
 import { Colors } from '../../constants/Colors';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { getCar, addToCollection, addToWishlist } from '../../services/firestone';
-import type { Car } from '../../types/models';
+import { getCar, addToCollection, addToWishlist, removeFromWishlist, isInWishlist } from '../../services/firestone';
+import type { CatalogCar } from '../../types/models';
 import ImageGallery from '../../components/ImageGallery';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from 'config/firebase';
 
 export default function CarDetailsCatalogScreen() {
     const router = useRouter();
@@ -34,20 +36,18 @@ export default function CarDetailsCatalogScreen() {
     const { theme } = useTheme();
     const colors = Colors[theme];
 
-    const [car, setCar] = useState<Car | null>(null);
+    const [car, setCar] = useState<CatalogCar | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [addingToCollection, setAddingToCollection] = useState(false);
     const [addingToWishlist, setAddingToWishlist] = useState(false);
-
-    useEffect(() => {
-        fetchCarDetails();
-    }, [id]);
+    const [isInUserWishlist, setIsInUserWishlist] = useState(false);
+    const [wishlistItemId, setWishlistItemId] = useState<string | null>(null);
 
     const fetchCarDetails = async () => {
         if (!id) return;
 
         try {
-            const carData = await getCar(id as string);
+            const carData = await getCar(id as string, 'catalog');
             if (!carData) {
                 Alert.alert('Error', 'Car not found');
                 router.back();
@@ -62,6 +62,33 @@ export default function CarDetailsCatalogScreen() {
             setIsLoading(false);
         }
     };
+
+    useEffect(() => {
+        fetchCarDetails();
+    }, [id]);
+
+    useEffect(() => {
+        const checkWishlistStatus = async () => {
+            if (!user || !car) return;
+            const inWishlist = await isInWishlist(user.uid, car.toyNumber);
+            setIsInUserWishlist(inWishlist);
+
+            if (inWishlist) {
+                const wishlistQuery = query(
+                    collection(db, 'wishlist'),
+                    where('userId', '==', user.uid),
+                    where('toyNumber', '==', car.toyNumber),
+                    where('deleted', '==', false)
+                );
+                const snapshot = await getDocs(wishlistQuery);
+                if (!snapshot.empty) {
+                    setWishlistItemId(snapshot.docs[0].id);
+                }
+            }
+        };
+
+        checkWishlistStatus();
+    }, [user, car]);
 
     const handleAddToCollection = async () => {
         if (!user || !car) return;
@@ -79,22 +106,33 @@ export default function CarDetailsCatalogScreen() {
         }
     };
 
-    const handleAddToWishlist = async () => {
+    const handleWishlistAction = async () => {
         if (!user || !car) return;
 
         setAddingToWishlist(true);
         try {
-            await addToWishlist(user.uid, car);
-            Alert.alert('Success', 'Added to wishlist!');
+            if (isInUserWishlist && wishlistItemId) {
+                await removeFromWishlist(wishlistItemId);
+                setIsInUserWishlist(false);
+                setWishlistItemId(null);
+                Alert.alert('Success', 'Removed from wishlist!');
+            } else {
+                await addToWishlist(user.uid, car);
+                setIsInUserWishlist(true);
+                Alert.alert('Success', 'Added to wishlist!');
+            }
             router.back();
         } catch (error) {
-            console.error('Error adding to wishlist:', error);
-            Alert.alert('Error', 'Failed to add to wishlist.');
+            if (error instanceof Error && error.message === 'This item is already in your wishlist') {
+                Alert.alert('Note', error.message);
+            } else {
+                console.error('Error managing wishlist:', error);
+                Alert.alert('Error', 'Failed to manage wishlist.');
+            }
         } finally {
             setAddingToWishlist(false);
         }
     };
-
 
     if (isLoading || !car) {
         return (
@@ -108,7 +146,6 @@ export default function CarDetailsCatalogScreen() {
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
             <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
 
-            {/* Header */}
             <View style={[styles.header, {
                 borderBottomColor: colors.border,
                 backgroundColor: colors.background
@@ -135,10 +172,13 @@ export default function CarDetailsCatalogScreen() {
                 />
 
                 <View style={[styles.detailsContainer, { backgroundColor: colors.background }]}>
-                    {/* Car Information */}
                     <View style={styles.section}>
                         <Text style={[styles.carName, { color: colors.text }]}>{car.name}</Text>
+
                         <View style={styles.carDetails}>
+                            <Text style={[styles.detailText, { color: colors.secondary }]}>
+                                Toy #: {car.toyNumber}
+                            </Text>
                             <Text style={[styles.detailText, { color: colors.secondary }]}>
                                 Series: {car.series} • {car.seriesNumber}
                             </Text>
@@ -148,10 +188,24 @@ export default function CarDetailsCatalogScreen() {
                             <Text style={[styles.detailText, { color: colors.secondary }]}>
                                 Color: {car.color}
                             </Text>
+                            <Text style={[styles.detailText, { color: colors.secondary }]}>
+                                Tampo: {car.tampo}
+                            </Text>
+                            <Text style={[styles.detailText, { color: colors.secondary }]}>
+                                Base Color: {car.baseColor}
+                            </Text>
+                            <Text style={[styles.detailText, { color: colors.secondary }]}>
+                                Window Color: {car.windowColor}
+                            </Text>
+                            <Text style={[styles.detailText, { color: colors.secondary }]}>
+                                Interior Color: {car.interiorColor}
+                            </Text>
+                            <Text style={[styles.detailText, { color: colors.secondary }]}>
+                                Wheel Type: {car.wheelType}
+                            </Text>
                         </View>
                     </View>
 
-                    {/* Action Buttons */}
                     <View style={styles.actionButtons}>
                         <TouchableOpacity
                             style={[styles.addButton, { backgroundColor: colors.primary }]}
@@ -169,22 +223,28 @@ export default function CarDetailsCatalogScreen() {
                             )}
                         </TouchableOpacity>
                         <TouchableOpacity
-                            style={[styles.wishlistButton, { borderColor: colors.border }]}
-                            onPress={handleAddToWishlist}
+                            style={[styles.wishlistButton, {
+                                borderColor: colors.border,
+                                backgroundColor: isInUserWishlist ? colors.primary : 'transparent'
+                            }]}
+                            onPress={handleWishlistAction}
                             disabled={addingToWishlist}
                             activeOpacity={0.7}
                         >
                             {addingToWishlist ? (
-                                <ActivityIndicator color={colors.primary} size="small" />
+                                <ActivityIndicator color={isInUserWishlist ? '#fff' : colors.primary} size="small" />
                             ) : (
-                                <Heart size={20} color={colors.text} />
+                                <Heart
+                                    size={20}
+                                    color={isInUserWishlist ? '#fff' : colors.text}
+                                    fill={isInUserWishlist ? '#fff' : 'none'}
+                                />
                             )}
                         </TouchableOpacity>
                     </View>
                 </View>
             </ScrollView>
 
-            {/* Premium Banner */}
             {user?.plan === 'Free' && (
                 <View style={[styles.premiumBanner, { backgroundColor: colors.primary }]}>
                     <Text style={styles.premiumText}>

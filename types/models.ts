@@ -1,3 +1,8 @@
+export interface CustomField {
+    name: string;
+    value: string;
+}
+
 export interface Car {
     id: string;
     userId: string;
@@ -6,11 +11,18 @@ export interface Car {
     seriesNumber: string;
     year: string;
     yearNumber: string;
+    toyNumber: string;
     color: string;
+    tampo: string;
+    baseColor: string;
+    windowColor: string;
+    interiorColor: string;
+    wheelType: string;
     purchaseDate: string;
     purchasePrice: string;
     purchaseStore: string;
     notes: string;
+    customFields: CustomField[];  // Add this line
     images: Array<{
         uri: string;
         downloadURL: string;
@@ -19,6 +31,29 @@ export interface Car {
     createdAt: Date;
     updatedAt: Date;
     deleted?: boolean;
+}
+
+export interface CatalogCar {
+    id: string; // This will be the toyNumber
+    name: string;
+    series: string;
+    seriesNumber: string;
+    year: string;
+    yearNumber: string;
+    toyNumber: string;
+    color: string;
+    tampo: string;
+    baseColor: string;
+    windowColor: string;
+    interiorColor: string;
+    wheelType: string;
+    images: Array<{
+        uri: string;
+        downloadURL: string;
+        path: string;
+    }>;
+    createdAt: Date;
+    updatedAt: Date;
 }
 
 export interface UserPreferences {

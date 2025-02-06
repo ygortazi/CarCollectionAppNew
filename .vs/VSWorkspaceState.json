@@ -1,7 +1,11 @@
 {
   "ExpandedNodes": [
-    ""
+    "",
+    "\\app",
+    "\\app\\(details)",
+    "\\app\\(tabs)",
+    "\\services"
   ],
-  "SelectedNode": "\\scripts",
+  "SelectedNode": "\\eas.json",
   "PreviewInSolutionExplorer": false
 }

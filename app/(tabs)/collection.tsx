@@ -39,6 +39,31 @@ import { useFilterStore } from '../../stores/filterStore';
 import { FilterProcessor } from '../../utils/FilterProcessor';
 import type { Car } from '../../types/models';
 
+function getImageSource(images: Array<{ uri?: string; downloadURL?: string | { uri: string } }>) {
+    if (!images || !images[0]) {
+        return require('assets/placeholder-image.png');
+    }
+
+    const image = images[0];
+    if (!image.downloadURL && !image.uri) {
+        return require('assets/placeholder-image.png');
+    }
+
+    if (typeof image.downloadURL === 'string') {
+        return { uri: image.downloadURL };
+    }
+
+    if (typeof image.downloadURL === 'object' && 'uri' in image.downloadURL) {
+        return { uri: image.downloadURL.uri };
+    }
+
+    if (image.uri) {
+        return { uri: image.uri };
+    }
+
+    return require('assets/placeholder-image.png');
+}
+
 interface SortOption {
     label: string;
     value: 'recent' | 'purchase' | 'name' | 'priceHigh' | 'priceLow';
@@ -93,13 +118,6 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
             </TouchableOpacity>
         ) : (
             <>
-                <TouchableOpacity
-                    style={[styles.actionButton, { backgroundColor: colors.surface }]}
-                    onPress={onCamera}
-                    activeOpacity={0.7}
-                >
-                    <Camera size={20} color={colors.text} />
-                </TouchableOpacity>
                 <TouchableOpacity
                     style={[styles.actionButton, { backgroundColor: colors.surface }]}
                     onPress={onEdit}
@@ -329,7 +347,7 @@ export default function CollectionScreen() {
             <Animated.View style={{ transform: [{ scale: longPressAnim }] }}>
                 <View style={styles.imageContainer}>
                     <Image
-                        source={{ uri: item.images[0]?.downloadURL || '/api/placeholder/400/300' }}
+                        source={getImageSource(item.images)}
                         style={styles.gridImage}
                     />
                     {item.images.length > 1 && (
@@ -402,7 +420,7 @@ export default function CollectionScreen() {
             ]}>
                 <View style={styles.imageContainer}>
                     <Image
-                        source={{ uri: item.images[0]?.downloadURL || '/api/placeholder/400/300' }}
+                        source={getImageSource(item.images)}
                         style={styles.listImage}
                     />
                     {item.images.length > 1 && (
@@ -519,7 +537,7 @@ export default function CollectionScreen() {
                         onPress={() => router.push({
                             pathname: '/modals/filter',
                             params: {
-                                data: JSON.stringify(collection)  // Stringify the data
+                                data: JSON.stringify(collection)
                             }
                         })}
                         activeOpacity={0.7}
@@ -535,7 +553,10 @@ export default function CollectionScreen() {
                 keyExtractor={item => item.id}
                 numColumns={isGridView ? 2 : 1}
                 key={isGridView ? 'grid' : 'list'}
-                contentContainerStyle={styles.listContent}
+                contentContainerStyle={[
+                    styles.listContent,
+                    collection.length === 0 && styles.emptyListContent
+                ]}
                 onRefresh={handleRefresh}
                 refreshing={loading.refreshing}
                 ListEmptyComponent={
@@ -601,273 +622,276 @@ export default function CollectionScreen() {
     );
 }
 
-    const styles = StyleSheet.create({
-        container: {
-            flex: 1,
-        },
-        header: {
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            padding: 16,
-            borderBottomWidth: 1,
-        },
-        title: {
-            fontSize: 24,
-            fontFamily: 'Inter-Bold',
-        },
-        statsRow: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            marginTop: 4,
-            gap: 8,
-        },
-        statsText: {
-            fontSize: 12,
-            fontFamily: 'Inter-Regular',
-        },
-        viewToggle: {
-            flexDirection: 'row',
-            borderRadius: 8,
-            padding: 4,
-        },
-        toggleButton: {
-            padding: 8,
-            borderRadius: 6,
-        },
-        toggleButtonActive: {},
-        searchContainer: {
-            padding: 16,
-            borderBottomWidth: 1,
-        },
-        searchRow: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 8,
-        },
-        searchBarWrapper: {
-            flex: 1,
-        },
-        searchInput: {
-            height: 40,
-            borderRadius: 8,
-            paddingHorizontal: 12,
-            fontSize: 16,
-            fontFamily: 'Inter-Regular',
-        },
-        sortButton: {
-            width: 40,
-            height: 40,
-            borderRadius: 8,
-            justifyContent: 'center',
-            alignItems: 'center',
-        },
-        filterButton: {
-            width: 40,
-            height: 40,
-            borderRadius: 8,
-            justifyContent: 'center',
-            alignItems: 'center',
-        },
-        listContent: {
-            padding: 16,
-        },
-        imageContainer: {
-            position: 'relative',
-        },
-        customImageIndicator: {
-            position: 'absolute',
-            bottom: 8,
-            right: 8,
-            flexDirection: 'row',
-            gap: 4,
-        },
-        indicatorDot: {
-            width: 6,
-            height: 6,
-            borderRadius: 3,
-            backgroundColor: '#fff',
-        },
-        gridCard: {
-            flex: 1,
-            margin: 8,
-            borderRadius: 12,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 4,
-            elevation: 3,
-            overflow: 'hidden',
-        },
-        listCard: {
-            marginBottom: 16,
-            borderRadius: 12,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 4,
-            elevation: 3,
-            overflow: 'hidden',
-        },
-        gridImage: {
-            marginTop: 1,
-            width: '100%',
-            height: 90,
-            resizeMode: 'contain',
-        },
-        listImage: {
-            width: 100,
-            height: 140,
-            resizeMode: 'contain',
-        },
-        gridCardContent: {
-            padding: 12,
-        },
-        listCardContent: {
-            flex: 1,
-            padding: 12,
-        },
-        cardTitle: {
-            fontSize: 14,
-            fontFamily: 'Inter-SemiBold',
-            marginBottom: 4,
-        },
-        cardSubtitle: {
-            fontSize: 12,
-            fontFamily: 'Inter-Regular',
-            marginBottom: 2,
-        },
-        cardDetail: {
-            fontSize: 11,
-            fontFamily: 'Inter-Regular',
-        },
-        purchaseInfo: {
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginTop: 8,
-            paddingTop: 8,
-            borderTopWidth: 1,
-        },
-        priceText: {
-            fontSize: 14,
-            fontFamily: 'Inter-SemiBold',
-        },
-        dateText: {
-            fontSize: 12,
-            fontFamily: 'Inter-Regular',
-        },
-        actionButtons: {
-            flexDirection: 'row',
-            gap: 8,
-        },
-        actionButton: {
-            padding: 4,
-        },
-        gridActions: {
-            justifyContent: 'flex-end',
-            marginTop: 8,
-        },
-        listActions: {
-            flexDirection: 'column',
-            padding: 8,
-            justifyContent: 'center',
-        },
-        fab: {
-            position: 'absolute',
-            right: 16,
-            bottom: Platform.OS === 'ios' ? 32 : 16,
-            width: 56,
-            height: 56,
-            borderRadius: 28,
-            justifyContent: 'center',
-            alignItems: 'center',
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.25,
-            shadowRadius: 3.84,
-            elevation: 5,
-        },
-        modalOverlay: {
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            justifyContent: 'flex-end',
-        },
-        modalContent: {
-            borderTopLeftRadius: 16,
-            borderTopRightRadius: 16,
-            padding: 16,
-            maxHeight: '80%',
-        },
-        modalTitle: {
-            fontSize: 18,
-            fontFamily: 'Inter-SemiBold',
-            marginBottom: 16,
-        },
-        sortOption: {
-            paddingVertical: 12,
-            borderBottomWidth: 1,
-        },
-        sortOptionText: {
-            fontSize: 16,
-            fontFamily: 'Inter-Regular',
-        },
-        loadingContainer: {
-            flex: 1,
-            justifyContent: 'center',
-            alignItems: 'center',
-        },
-        emptyStateContainer: {
-            flex: 1,
-            justifyContent: 'center',
-            alignItems: 'center',
-            padding: 32,
-        },
-        emptyStateText: {
-            fontSize: 16,
-            fontFamily: 'Inter-Medium',
-            textAlign: 'center',
-        },
-        selectedCard: {
-            backgroundColor: 'rgba(0, 102, 255, 0.1)',
-        },
-        selectButton: {
-            padding: 8,
-            borderRadius: 20,
-            width: 40,
-            height: 40,
-            justifyContent: 'center',
-            alignItems: 'center',
-        },
-        listCardInner: {
-            flexDirection: 'row',
-            flex: 1,
-        },
-        batchDeleteButton: {
-            position: 'absolute',
-            bottom: Platform.OS === 'ios' ? 32 : 16,
-            left: 16,
-            right: 16,
-            backgroundColor: '#FF3B30',
-            padding: 16,
-            borderRadius: 28,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.25,
-            shadowRadius: 3.84,
-            elevation: 5,
-        },
-        batchDeleteText: {
-            color: '#fff',
-            fontSize: 16,
-            fontFamily: 'Inter-SemiBold',
-        },
-    });
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+    },
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        padding: 16,
+        borderBottomWidth: 1,
+    },
+    title: {
+        fontSize: 24,
+        fontFamily: 'Inter-Bold',
+    },
+    statsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 4,
+        gap: 8,
+    },
+    statsText: {
+        fontSize: 12,
+        fontFamily: 'Inter-Regular',
+    },
+    viewToggle: {
+        flexDirection: 'row',
+        borderRadius: 8,
+        padding: 4,
+    },
+    toggleButton: {
+        padding: 8,
+        borderRadius: 6,
+    },
+    toggleButtonActive: {},
+    searchContainer: {
+        padding: 16,
+        borderBottomWidth: 1,
+    },
+    searchRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    searchBarWrapper: {
+        flex: 1,
+    },
+    searchInput: {
+        height: 40,
+        borderRadius: 8,
+        paddingHorizontal: 12,
+        fontSize: 16,
+        fontFamily: 'Inter-Regular',
+    },
+    sortButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 8,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    filterButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 8,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    listContent: {
+        padding: 16,
+    },
+    imageContainer: {
+        position: 'relative',
+    },
+    customImageIndicator: {
+        position: 'absolute',
+        bottom: 8,
+        right: 8,
+        flexDirection: 'row',
+        gap: 4,
+    },
+    indicatorDot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: '#fff',
+    },
+    gridCard: {
+        flex: 1,
+        margin: 8,
+        borderRadius: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+        overflow: 'hidden',
+    },
+    listCard: {
+        marginBottom: 16,
+        borderRadius: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+        overflow: 'hidden',
+    },
+    gridImage: {
+        marginTop: 1,
+        width: '100%',
+        height: 90,
+        resizeMode: 'contain',
+    },
+    listImage: {
+        width: 100,
+        height: 140,
+        resizeMode: 'contain',
+    },
+    gridCardContent: {
+        padding: 12,
+    },
+    listCardContent: {
+        flex: 1,
+        padding: 12,
+    },
+    cardTitle: {
+        fontSize: 14,
+        fontFamily: 'Inter-SemiBold',
+        marginBottom: 4,
+    },
+    cardSubtitle: {
+        fontSize: 12,
+        fontFamily: 'Inter-Regular',
+        marginBottom: 2,
+    },
+    cardDetail: {
+        fontSize: 11,
+        fontFamily: 'Inter-Regular',
+    },
+    purchaseInfo: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginTop: 8,
+        paddingTop: 8,
+        borderTopWidth: 1,
+    },
+    priceText: {
+        fontSize: 14,
+        fontFamily: 'Inter-SemiBold',
+    },
+    dateText: {
+        fontSize: 12,
+        fontFamily: 'Inter-Regular',
+    },
+    actionButtons: {
+        flexDirection: 'row',
+        gap: 8,
+    },
+    actionButton: {
+        padding: 4,
+    },
+    gridActions: {
+        justifyContent: 'flex-end',
+        marginTop: 8,
+    },
+    listActions: {
+        flexDirection: 'column',
+        padding: 8,
+        justifyContent: 'center',
+    },
+    fab: {
+        position: 'absolute',
+        right: 16,
+        bottom: Platform.OS === 'ios' ? 32 : 16,
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
+    },
+    modalOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'flex-end',
+    },
+    modalContent: {
+        borderTopLeftRadius: 16,
+        borderTopRightRadius: 16,
+        padding: 16,
+        maxHeight: '80%',
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontFamily: 'Inter-SemiBold',
+        marginBottom: 16,
+    },
+    sortOption: {
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+    },
+    sortOptionText: {
+        fontSize: 16,
+        fontFamily: 'Inter-Regular',
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    emptyListContent: {
+        flexGrow: 1,
+    },
+    emptyStateContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 32,
+    },
+    emptyStateText: {
+        fontSize: 16,
+        fontFamily: 'Inter-Medium',
+        textAlign: 'center',
+    },
+    selectedCard: {
+        backgroundColor: 'rgba(0, 102, 255, 0.1)',
+    },
+    selectButton: {
+        padding: 8,
+        borderRadius: 20,
+        width: 40,
+        height: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    listCardInner: {
+        flexDirection: 'row',
+        flex: 1,
+    },
+    batchDeleteButton: {
+        position: 'absolute',
+        bottom: Platform.OS === 'ios' ? 32 : 16,
+        left: 16,
+        right: 16,
+        backgroundColor: '#FF3B30',
+        padding: 16,
+        borderRadius: 28,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
+    },
+    batchDeleteText: {
+        color: '#fff',
+        fontSize: 16,
+        fontFamily: 'Inter-SemiBold',
+    },
+});

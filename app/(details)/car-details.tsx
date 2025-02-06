@@ -28,12 +28,43 @@ import { Colors } from '../../constants/Colors';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { getCar, deleteCar } from '../../services/firestone';
-import type { Car } from '../../types/models';
+import type { Car, CatalogCar } from '../../types/models';
 import ImageGallery from '../../components/ImageGallery';
 
 interface CarDetailsParams extends Record<string, string> {
     id: string;
 }
+
+function isCollectionCar(car: Car | CatalogCar): car is Car {
+    return 'userId' in car;
+}
+
+const Details = ({ car, colors }: { car: Car | CatalogCar, colors: any }) => {
+    const renderDetailPair = (label: string, value: string | undefined | null) => {
+        if (!value) return null;
+        return (
+            <Text style={[styles.detailText, { color: colors.secondary }]}>
+                {label}: {value}
+            </Text>
+        );
+    };
+
+    return (
+        <View style={styles.carDetails}>
+            {renderDetailPair("Toy #", car.toyNumber)}
+            {renderDetailPair("Series", car.series)}
+            {renderDetailPair("Series #", car.seriesNumber)}
+            {renderDetailPair("Year", car.year)}
+            {renderDetailPair("Year #", car.yearNumber)}
+            {renderDetailPair("Color", car.color)}
+            {renderDetailPair("Tampo", car.tampo)}
+            {renderDetailPair("Base Color", car.baseColor)}
+            {renderDetailPair("Window Color", car.windowColor)}
+            {renderDetailPair("Interior Color", car.interiorColor)}
+            {renderDetailPair("Wheel Type", car.wheelType)}
+        </View>
+    );
+};
 
 export default function CarDetailsScreen() {
     const router = useRouter();
@@ -43,7 +74,7 @@ export default function CarDetailsScreen() {
     const { theme } = useTheme();
     const colors = Colors[theme];
 
-    const [car, setCar] = useState<Car | null>(null);
+    const [car, setCar] = useState<Car | CatalogCar | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
 
@@ -52,7 +83,7 @@ export default function CarDetailsScreen() {
 
         setIsLoading(true);
         try {
-            const carData = await getCar(id as string);
+            const carData = await getCar(id as string, 'collection');
             if (!carData) {
                 Alert.alert('Error', 'Car not found');
                 router.back();
@@ -96,7 +127,6 @@ export default function CarDetailsScreen() {
                     onPress: async () => {
                         try {
                             await deleteCar(id as string);
-                            // Instead of setting params, emit an event that the collection screen can listen to
                             router.back();
                         } catch (error) {
                             Alert.alert('Error', 'Failed to delete car. Please try again.');
@@ -108,7 +138,6 @@ export default function CarDetailsScreen() {
         );
     };
 
-    
     if (isLoading || !car) {
         return (
             <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
@@ -136,20 +165,24 @@ export default function CarDetailsScreen() {
                     </TouchableOpacity>
                     <Text style={[styles.headerTitle, { color: colors.text }]}>Collection Item</Text>
                     <View style={styles.headerActions}>
-                        <TouchableOpacity
-                            style={styles.headerButton}
-                            onPress={handleEdit}
-                            activeOpacity={0.7}
-                        >
-                            <Pencil size={20} color={colors.primary} />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={styles.headerButton}
-                            onPress={handleDelete}
-                            activeOpacity={0.7}
-                        >
-                            <Trash2 size={20} color="#FF3B30" />
-                        </TouchableOpacity>
+                        {isCollectionCar(car) && (
+                            <>
+                                <TouchableOpacity
+                                    style={styles.headerButton}
+                                    onPress={handleEdit}
+                                    activeOpacity={0.7}
+                                >
+                                    <Pencil size={20} color={colors.primary} />
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={styles.headerButton}
+                                    onPress={handleDelete}
+                                    activeOpacity={0.7}
+                                >
+                                    <Trash2 size={20} color="#FF3B30" />
+                                </TouchableOpacity>
+                            </>
+                        )}
                     </View>
                 </View>
             </View>
@@ -168,55 +201,53 @@ export default function CarDetailsScreen() {
                     {/* Car Information */}
                     <View style={[styles.section, { borderBottomColor: colors.border }]}>
                         <Text style={[styles.carName, { color: colors.text }]}>{car.name}</Text>
-                        <View style={styles.carDetails}>
-                            <Text style={[styles.detailText, { color: colors.secondary }]}>
-                                Series: {car.series} • {car.seriesNumber}
-                            </Text>
-                            <Text style={[styles.detailText, { color: colors.secondary }]}>
-                                Year: {car.year} • {car.yearNumber}
-                            </Text>
-                            <Text style={[styles.detailText, { color: colors.secondary }]}>
-                                Color: {car.color}
-                            </Text>
-                        </View>
+                        <Details car={car} colors={colors} />
                     </View>
 
                     {/* Collection Details */}
-                    <View style={[styles.section, { borderBottomColor: colors.border }]}>
-                        <Text style={[styles.sectionTitle, { color: colors.text }]}>Collection Details</Text>
-                        <View style={styles.statsGrid}>
-                            <View style={[styles.statsCard, { backgroundColor: colors.surface }]}>
-                                <View style={styles.statsIconContainer}>
-                                    <Calendar size={16} color={colors.secondary} />
-                                    <Text style={[styles.statsLabel, { color: colors.secondary }]}>Purchased</Text>
-                                </View>
-                                <Text style={[styles.statsValue, { color: colors.text }]}>
-                                    {car.purchaseDate ? new Date(car.purchaseDate + 'T00:00:00').toLocaleDateString() : 'Not set'}
-                                </Text>
-                            </View>
-                            <View style={[styles.statsCard, { backgroundColor: colors.surface }]}>
-                                <View style={styles.statsIconContainer}>
-                                    <DollarSign size={16} color={colors.secondary} />
-                                    <Text style={[styles.statsLabel, { color: colors.secondary }]}>Price</Text>
-                                </View>
-                                <Text style={[styles.statsValue, { color: colors.text }]}>
-                                    {car.purchasePrice ? `$${Number(car.purchasePrice).toFixed(2)}` : 'Not set'}
-                                </Text>
-                            </View>
-                            <View style={[styles.statsCard, { backgroundColor: colors.surface }]}>
-                                <View style={styles.statsIconContainer}>
-                                    <Store size={16} color={colors.secondary} />
-                                    <Text style={[styles.statsLabel, { color: colors.secondary }]}>Store</Text>
-                                </View>
-                                <Text style={[styles.statsValue, { color: colors.text }]}>
-                                    {car.purchaseStore || 'Not set'}
-                                </Text>
+                    {isCollectionCar(car) && (car.purchaseDate || car.purchasePrice || car.purchaseStore) && (
+                        <View style={[styles.section, { borderBottomColor: colors.border }]}>
+                            <Text style={[styles.sectionTitle, { color: colors.text }]}>Collection Details</Text>
+                            <View style={styles.statsGrid}>
+                                {car.purchaseDate && (
+                                    <View style={[styles.statsCard, { backgroundColor: colors.surface }]}>
+                                        <View style={styles.statsIconContainer}>
+                                            <Calendar size={16} color={colors.secondary} />
+                                            <Text style={[styles.statsLabel, { color: colors.secondary }]}>Purchased</Text>
+                                        </View>
+                                        <Text style={[styles.statsValue, { color: colors.text }]}>
+                                            {new Date(car.purchaseDate + 'T00:00:00').toLocaleDateString()}
+                                        </Text>
+                                    </View>
+                                )}
+                                {car.purchasePrice && (
+                                    <View style={[styles.statsCard, { backgroundColor: colors.surface }]}>
+                                        <View style={styles.statsIconContainer}>
+                                            <DollarSign size={16} color={colors.secondary} />
+                                            <Text style={[styles.statsLabel, { color: colors.secondary }]}>Price</Text>
+                                        </View>
+                                        <Text style={[styles.statsValue, { color: colors.text }]}>
+                                            ${Number(car.purchasePrice).toFixed(2)}
+                                        </Text>
+                                    </View>
+                                )}
+                                {car.purchaseStore && (
+                                    <View style={[styles.statsCard, { backgroundColor: colors.surface }]}>
+                                        <View style={styles.statsIconContainer}>
+                                            <Store size={16} color={colors.secondary} />
+                                            <Text style={[styles.statsLabel, { color: colors.secondary }]}>Store</Text>
+                                        </View>
+                                        <Text style={[styles.statsValue, { color: colors.text }]}>
+                                            {car.purchaseStore}
+                                        </Text>
+                                    </View>
+                                )}
                             </View>
                         </View>
-                    </View>
+                    )}
 
                     {/* Notes Section */}
-                    {car.notes && (
+                    {isCollectionCar(car) && car.notes && (
                         <View style={styles.section}>
                             <View style={styles.notesHeader}>
                                 <Info size={16} color={colors.secondary} />
@@ -231,9 +262,34 @@ export default function CarDetailsScreen() {
                         </View>
                     )}
                 </View>
+
+                {/* Custom Fields Section */}
+                {isCollectionCar(car) && car.customFields && car.customFields.length > 0 && (
+                    <View style={[styles.section, { borderBottomColor: colors.border }]}>
+                        <Text style={[styles.sectionTitle, { color: colors.text }]}>Custom Fields</Text>
+                        <View style={styles.customFieldsContainer}>
+                            {car.customFields.map((field, index) => (
+                                <View
+                                    key={`${field.name}-${index}`}
+                                    style={[styles.customFieldCard, {
+                                        backgroundColor: colors.surface,
+                                        borderBottomWidth: index !== car.customFields.length - 1 ? 1 : 0,
+                                        borderBottomColor: colors.border
+                                    }]}
+                                >
+                                    <Text style={[styles.customFieldName, { color: colors.secondary }]}>
+                                        {field.name}
+                                    </Text>
+                                    <Text style={[styles.customFieldValue, { color: colors.text }]}>
+                                        {field.value}
+                                    </Text>
+                                </View>
+                            ))}
+                        </View>
+                    </View>
+                )}
             </ScrollView>
 
-            {/* Premium Banner */}
             {user?.plan === 'Free' && (
                 <View style={[styles.premiumBanner, { backgroundColor: colors.primary }]}>
                     <Text style={styles.premiumText}>
@@ -351,5 +407,22 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    customFieldsContainer: {
+        borderRadius: 8,
+        overflow: 'hidden',
+    },
+    customFieldCard: {
+        padding: 12,
+        borderBottomWidth: 1,
+    },
+    customFieldName: {
+        fontSize: 12,
+        fontFamily: 'Inter-Regular',
+        marginBottom: 4,
+    },
+    customFieldValue: {
+        fontSize: 14,
+        fontFamily: 'Inter-Medium',
     },
 });

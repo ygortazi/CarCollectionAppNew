@@ -13,7 +13,8 @@ export const Colors = {
     border: '#E8E8E8',
     primary: '#0066FF',
     secondary: '#666666',
-    surface: '#F5F5F5',
+        surface: '#F5F5F5',
+        success: '#22CC88', 
   },
   dark: {
     background: '#121212',
@@ -21,6 +22,7 @@ export const Colors = {
     border: '#2A2A2A',
     primary: '#0066FF',
     secondary: '#A0A0A0',
-    surface: '#1E1E1E',
+      surface: '#1E1E1E',
+      success: '#22CC88', 
   },
 };
