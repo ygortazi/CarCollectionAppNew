@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
     View,
     Text,
@@ -34,15 +34,56 @@ import { StatusBar } from 'expo-status-bar';
 import { getUserWishlist, addToCollection, removeFromWishlist } from 'services/firestone';
 import { useFilterStore } from '../../stores/filterStore';
 import { FilterProcessor } from '../../utils/FilterProcessor';
+import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 import type { CatalogCar } from 'types/models';
 
-function getImageSource(images: Array<{ downloadURL?: string }>) {
-    if (!images || !images[0] || !images[0].downloadURL) {
+const storage = getStorage();
+
+async function getImageSource(images: Array<{
+    uri?: string;
+    downloadURL?: string | { uri: string };
+    path?: string;
+}>) {
+    if (!images || !images[0]) {
         return require('assets/placeholder-image.png');
     }
-    return { uri: images[0].downloadURL };
-}
 
+    try {
+        if (images[0].path && typeof images[0].path === 'string' && images[0].path.startsWith('gs://')) {
+            try {
+                const gsPath = images[0].path.replace(/^gs:\/\/[^\/]+\//, '');
+                const imageRef = ref(storage, gsPath);
+                const url = await getDownloadURL(imageRef);
+                return { uri: url };
+            } catch (error) {
+                console.log('Error getting URL from gs path:', error);
+            }
+        }
+
+        if (images[0].path && typeof images[0].path === 'string') {
+            try {
+                const imageRef = ref(storage, images[0].path);
+                const url = await getDownloadURL(imageRef);
+                return { uri: url };
+            } catch (error) {
+                console.log('Error getting URL from path:', error);
+            }
+        }
+
+        if (images[0].downloadURL && typeof images[0].downloadURL === 'string') {
+            return { uri: images[0].downloadURL };
+        }
+
+        if (images[0].uri && typeof images[0].uri === 'string') {
+            return { uri: images[0].uri };
+        }
+
+        return require('assets/placeholder-image.png');
+    } catch (error) {
+        console.error('Error getting image URL:', error);
+        return require('assets/placeholder-image.png');
+    }
+}
 type PaginatedResponse = {
     items: CatalogCar[];
     lastDoc: any;
@@ -139,6 +180,17 @@ export default function WishlistScreen() {
     const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
     const [selectionMode, setSelectionMode] = useState(false);
     const [longPressAnim] = useState(new Animated.Value(1));
+    const [imageUrls, setImageUrls] = useState<{[key: string]: any}>({});
+
+    useEffect(() => {
+        wishlist.forEach(async (item) => {
+            const source = await getImageSource(item.images);
+            setImageUrls(prev => ({
+                ...prev,
+                [item.id]: source
+            }));
+        });
+    }, [wishlist]);
 
     const toggleItemSelection = useCallback((carId: string) => {
         setSelectedItems(prev => {
@@ -297,9 +349,21 @@ export default function WishlistScreen() {
         >
             <Animated.View style={{ transform: [{ scale: longPressAnim }] }}>
                 <View style={styles.imageContainer}>
+                    {!imageUrls[item.id] && (
+                        <ActivityIndicator 
+                            style={StyleSheet.absoluteFill}
+                            color={colors.primary}
+                        />
+                    )}
                     <Image
-                        source={getImageSource(item.images)}
+                        source={imageUrls[item.id] || require('assets/placeholder-image.png')}
                         style={styles.gridImage}
+                        onError={() => {
+                            setImageUrls(prev => ({
+                                ...prev,
+                                [item.id]: require('assets/placeholder-image.png')
+                            }));
+                        }}
                     />
                     {item.images.length > 1 && (
                         <View style={styles.customImageIndicator}>
@@ -345,7 +409,8 @@ export default function WishlistScreen() {
                 </View>
             </Animated.View>
         </Pressable>
-    ), [router, handleAddToCollection, handleDelete, colors, selectedItems, selectionMode, toggleItemSelection]);
+    ), [router, handleAddToCollection, handleDelete, colors, selectedItems, selectionMode, toggleItemSelection, imageUrls]);
+
     const renderListItem = useCallback(({ item }: { item: CatalogCar }) => (
         <Pressable
             style={[
@@ -371,9 +436,21 @@ export default function WishlistScreen() {
                 { transform: [{ scale: longPressAnim }] }
             ]}>
                 <View style={styles.imageContainer}>
+                    {!imageUrls[item.id] && (
+                        <ActivityIndicator 
+                            style={StyleSheet.absoluteFill}
+                            color={colors.primary}
+                        />
+                    )}
                     <Image
-                        source={getImageSource(item.images)}
+                        source={imageUrls[item.id] || require('assets/placeholder-image.png')}
                         style={styles.listImage}
+                        onError={() => {
+                            setImageUrls(prev => ({
+                                ...prev,
+                                [item.id]: require('assets/placeholder-image.png')
+                            }));
+                        }}
                     />
                     {item.images.length > 1 && (
                         <View style={styles.customImageIndicator}>
@@ -419,7 +496,7 @@ export default function WishlistScreen() {
                 />
             </Animated.View>
         </Pressable>
-    ), [router, handleAddToCollection, handleDelete, colors, selectedItems, selectionMode, toggleItemSelection]);
+    ), [router, handleAddToCollection, handleDelete, colors, selectedItems, selectionMode, toggleItemSelection, imageUrls]);
 
     if (loading.fetchingCars) {
         return (

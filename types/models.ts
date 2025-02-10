@@ -1,3 +1,5 @@
+import { Timestamp } from 'firebase/firestore';
+
 export interface CustomField {
     name: string;
     value: string;
@@ -13,6 +15,8 @@ export interface Car {
     yearNumber: string;
     toyNumber: string;
     color: string;
+    brand: string;
+    manufacturer: string;
     tampo: string;
     baseColor: string;
     windowColor: string;
@@ -22,7 +26,7 @@ export interface Car {
     purchasePrice: string;
     purchaseStore: string;
     notes: string;
-    customFields: CustomField[];  // Add this line
+    customFields: CustomField[];
     images: Array<{
         uri: string;
         downloadURL: string;
@@ -34,7 +38,7 @@ export interface Car {
 }
 
 export interface CatalogCar {
-    id: string; // This will be the toyNumber
+    id: string;
     name: string;
     series: string;
     seriesNumber: string;
@@ -42,6 +46,8 @@ export interface CatalogCar {
     yearNumber: string;
     toyNumber: string;
     color: string;
+    brand: string;
+    manufacturer: string;
     tampo: string;
     baseColor: string;
     windowColor: string;
@@ -57,12 +63,51 @@ export interface CatalogCar {
 }
 
 export interface UserPreferences {
-    id: string;
-    userId: string;
-    defaultView: 'grid' | 'list';
-    defaultSort: 'recent' | 'name' | 'series' | 'year';
-    notifications: boolean;
-    theme: 'light' | 'dark' | 'system';
+    id?: string;
+    uid: string;
+    name: string;
+    email: string;
+    plan: string;
+    collectionCount: number;
+    wishlistCount: number;
+    deleted: boolean;
+    preferences: {
+        currency: string;
+        defaultCatalogView: 'grid' | 'list';
+        defaultCollectionView: 'grid' | 'list';
+        emailNotificationsEnabled: boolean;
+        notificationsEnabled: boolean;
+        language: string;
+        showPrices: boolean;
+        theme: 'light' | 'dark' | 'system';
+        privacy?: {
+            dataCollection: boolean;
+            activityHistory: boolean;
+            biometricAuth: boolean;
+            profileVisibility: 'public' | 'private' | 'friends';
+            dataSharing: {
+                analytics: boolean;
+                marketing: boolean;
+                thirdParty: boolean;
+            };
+        };
+        notifications?: {
+            specialOffers: boolean;
+            newFeatures: boolean;
+            newArrivals: boolean;
+            newsletter: boolean;
+            securityAlerts: boolean;
+            activitySummary: boolean;
+        };
+        sync?: {
+            autoSync: boolean;
+            wifiOnly: boolean;
+            frequency: number;
+            lastSynced: Date | Timestamp | null;
+        };    
+    };
+    createdAt: Date | Timestamp;
+    updatedAt: Date | Timestamp;
 }
 
 export interface StorageImage {
@@ -84,3 +129,12 @@ export interface FilterState {
 }
 
 export type SortOption = FilterState['filters']['sortBy'];
+
+export interface NotificationSettings {
+    notificationsEnabled: boolean;
+    emailNotificationsEnabled: boolean;
+}
+
+export type UserPreferencesUpdate = Partial<UserPreferences> & {
+    preferences?: Partial<UserPreferences['preferences']>;
+}

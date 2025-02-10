@@ -7,10 +7,11 @@ import {
     Dimensions,
     LayoutChangeEvent,
     Platform,
+    ImageSourcePropType,
 } from 'react-native';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import type { StorageImage } from '../types/storage';
-import { ImageDimensions } from '../types/common';
+import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 
 interface ImageGalleryProps {
     images: StorageImage[];
@@ -19,60 +20,40 @@ interface ImageGalleryProps {
     mode?: 'detail' | 'edit';
 }
 
-interface ImageUriObject {
-    uri: string;
-}
+const storage = getStorage();
 
-interface DownloadURLObject {
-    uri: string;
-    [key: string]: any;  // Allow other properties
-}
+async function getImageUri(image: StorageImage | undefined): Promise<string | undefined> {
+    if (!image) return undefined;
 
-function getImageUri(image: StorageImage | undefined): string | null {
-    if (!image) return null;
-
-    // Helper function to recursively find a valid URL
-    function findValidUrl(obj: any): string | null {
-        // If it's a string and a valid URL, return it
-        if (typeof obj === 'string') {
-            if (obj.startsWith('http') || obj.startsWith('file://') || obj.startsWith('data:image/')) {
-                return obj;
+    try {
+        // Always try to get a fresh URL from storage path first
+        if (typeof image.path === 'string') {
+            try {
+                const imageRef = ref(storage, image.path);
+                return await getDownloadURL(imageRef);
+            } catch (storageError) {
+                console.error('Storage error:', storageError);
             }
-            return null;
         }
 
-        // If it's not an object or is null, return null
-        if (!obj || typeof obj !== 'object') {
-            return null;
+        // If getting from storage fails, try using existing URLs
+        if (typeof image.downloadURL === 'string' && image.downloadURL.includes('firebasestorage.googleapis.com')) {
+            return image.downloadURL;
+        }
+        
+        if (typeof image.uri === 'string' && image.uri.includes('firebasestorage.googleapis.com')) {
+            return image.uri;
         }
 
-        // First check downloadURL property
-        if ('downloadURL' in obj) {
-            const result = findValidUrl(obj.downloadURL);
-            if (result) return result;
-        }
-
-        // Then check uri property
-        if ('uri' in obj) {
-            const result = findValidUrl(obj.uri);
-            if (result) return result;
-        }
-
-        // Lastly check path property
-        if ('path' in obj) {
-            const result = findValidUrl(obj.path);
-            if (result) return result;
-        }
-
-        // If none of the above work, return null
-        return null;
+        console.log('No valid URL found in image data');
+        return undefined;
+    } catch (error) {
+        console.error('Error getting image URL:', error);
+        return undefined;
     }
-
-    const validUrl = findValidUrl(image);
-    return validUrl;
 }
 
-function validateImageUri(uri?: string | null): boolean {
+function validateImageUri(uri?: string | null | undefined): boolean {
     if (!uri || typeof uri !== 'string') return false;
     return uri.startsWith('file://') ||
         uri.startsWith('http://') ||
@@ -90,15 +71,23 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
     const [containerWidth, setContainerWidth] = useState(Dimensions.get('window').width);
     const [containerHeight, setContainerHeight] = useState(0);
     const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
+    const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
 
     const hasMultipleImages = images && images.length > 1;
-    const currentImageUri = images && images[currentIndex]
-        ? getImageUri(images[currentIndex])
-        : null;
 
     useEffect(() => {
         setCurrentIndex(0);
     }, [images]);
+
+    useEffect(() => {
+        const loadImage = async () => {
+            console.log('Current image data:', images[currentIndex]); // Debug log
+            const uri = await getImageUri(images[currentIndex]);
+            setImageUrl(uri);
+        };
+        
+        loadImage();
+    }, [currentIndex, images]);
 
     const handleLayout = (event: LayoutChangeEvent) => {
         const { width, height } = event.nativeEvent.layout;
@@ -112,9 +101,9 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
             Math.min(containerHeight, screenWidth * (3 / 2)) :
             Math.min(containerHeight, screenWidth * (4 / 3));
 
-        if (currentImageUri && validateImageUri(currentImageUri)) {
+        if (imageUrl && validateImageUri(imageUrl)) {
             Image.getSize(
-                currentImageUri,
+                imageUrl,
                 (width, height) => {
                     const imageAspectRatio = width / height;
                     const screenAspectRatio = screenWidth / screenHeight;
@@ -138,7 +127,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
         } else {
             setImageSize({ width: screenWidth, height: screenWidth * (3 / 2) });
         }
-    }, [currentImageUri, containerWidth, containerHeight, mode]);
+    }, [imageUrl, containerWidth, containerHeight, mode]);
 
     const navigateImage = (direction: 'next' | 'prev') => {
         if (!images || images.length <= 1) return;
@@ -152,6 +141,13 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
         });
     };
 
+    const getImageSource = (): ImageSourcePropType => {
+        if (imageUrl && validateImageUri(imageUrl)) {
+            return { uri: imageUrl };
+        }
+        return require('../assets/placeholder-image.png');
+    };
+
     return (
         <View
             style={[styles.container, { backgroundColor }]}
@@ -163,13 +159,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
                 style={styles.imageContainer}
             >
                 <Image
-                    source={(() => {
-                        const uri = getImageUri(images[currentIndex]);
-                        if (uri && validateImageUri(uri)) {
-                            return { uri };
-                        }
-                        return require('../assets/placeholder-image.png');
-                    })()}
+                    source={getImageSource()}
                     style={[
                         styles.image,
                         {

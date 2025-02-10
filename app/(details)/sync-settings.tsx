@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -24,6 +24,25 @@ import { useTheme } from '../../context/theme';
 import { Colors } from '../../constants/Colors';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import NetInfo, { NetInfoStateType } from '@react-native-community/netinfo';
+import { useTranslation } from 'react-i18next';
+import { useSyncSettings } from '../../context/sync';
+import { Timestamp } from 'firebase/firestore';
+
+interface SyncState {
+  lastSynced: Date | null;
+  isSyncing: boolean;
+  error: string | null;
+  storage: number;
+  frequency: number;
+  batteryUsage: 'Low' | 'Medium' | 'High';
+  batteryImpact: number;
+  storageDetails: {
+    images: number;
+    metadata: number;
+    total: number;
+  };
+}
 
 interface ToggleSwitchProps {
   enabled: boolean;
@@ -41,34 +60,59 @@ interface SettingItemProps {
   colors: any;
 }
 
+interface ApiError {
+  message: string;
+}
+
+const api = {
+  syncCollection: async () => {
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    return Promise.resolve();
+  },
+  getSyncStorageStats: async () => {
+    return Promise.resolve({
+      images: 5242880, // 5MB
+      metadata: 1048576, // 1MB
+      total: 6291456 // 6MB
+    });
+  },
+  getSyncBatteryImpact: async () => {
+    return Promise.resolve(3); // Low impact
+  },
+  clearSyncData: async () => {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return Promise.resolve();
+  }
+};
+
+const formatRelativeTime = (date: Date | null): string => {
+  if (!date) return 'Not synced yet';
+  
+  const diff = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+  if (diff < 60) return 'Just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)} minutes ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)} hours ago`;
+  return `${Math.floor(diff / 86400)} days ago`;
+};
+
 const ToggleSwitch: React.FC<ToggleSwitchProps> = ({ enabled, onToggle, colors }) => (
   <TouchableOpacity
     onPress={() => onToggle(!enabled)}
-    style={[
-      styles.toggleContainer,
-      {
-        backgroundColor: enabled ? colors.primary : colors.surface,
-      },
-    ]}
+    style={[styles.toggleContainer, { backgroundColor: enabled ? colors.primary : colors.surface }]}
     activeOpacity={0.7}
   >
-    <View
-      style={[
-        styles.toggleHandle,
-        {
-          transform: [{ translateX: enabled ? 20 : 2 }],
-          backgroundColor: enabled ? '#fff' : colors.secondary,
-        },
-      ]}
-    />
+    <View style={[styles.toggleHandle, {
+      transform: [{ translateX: enabled ? 20 : 2 }],
+      backgroundColor: enabled ? '#fff' : colors.secondary,
+    }]} />
   </TouchableOpacity>
 );
 
 const SectionHeader = ({ title, colors }: { title: string; colors: any }) => (
-  <Text style={[styles.sectionHeader, { 
-    color: colors.secondary,
-    backgroundColor: colors.surface 
-  }]}>{title}</Text>
+  <Text style={[styles.sectionHeader, { color: colors.secondary, backgroundColor: colors.surface }]}>
+    {title}
+  </Text>
 );
 
 const SettingItem: React.FC<SettingItemProps> = ({ 
@@ -89,9 +133,7 @@ const SettingItem: React.FC<SettingItemProps> = ({
     <View style={styles.settingItemLeft}>
       <Icon size={20} color={colors.text} />
       <View style={styles.settingItemText}>
-        <Text style={[styles.settingItemLabel, { color: colors.text }]}>
-          {label}
-        </Text>
+        <Text style={[styles.settingItemLabel, { color: colors.text }]}>{label}</Text>
         {description && (
           <Text style={[styles.settingItemDescription, { color: colors.secondary }]}>
             {description}
@@ -104,71 +146,137 @@ const SettingItem: React.FC<SettingItemProps> = ({
     ) : action}
   </TouchableOpacity>
 );
+
+const isConnectedToWifi = async (): Promise<boolean> => {
+  const netInfo = await NetInfo.fetch();
+  return netInfo.type === NetInfoStateType.wifi;
+};
+
 export default function SyncSettingsScreen() {
   const router = useRouter();
   const { theme } = useTheme();
   const colors = Colors[theme];
+  const { t } = useTranslation();
   
-  const [autoSync, setAutoSync] = useState(true);
-  const [wifiOnly, setWifiOnly] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
+  const { syncSettings, updateSyncSettings } = useSyncSettings();
+  const [syncState, setSyncState] = useState<SyncState>({
+    lastSynced: syncSettings.lastSynced instanceof Timestamp 
+      ? syncSettings.lastSynced.toDate() 
+      : syncSettings.lastSynced instanceof Date
+        ? syncSettings.lastSynced
+        : null,
+    isSyncing: false,
+    error: null,
+    storage: 0,
+    frequency: syncSettings.frequency,
+    batteryUsage: 'Low',
+    batteryImpact: 0,
+    storageDetails: {
+      images: 0,
+      metadata: 0,
+      total: 0
+    }
+  });
 
-  const handleSyncNow = async () => {
-    setIsLoading(true);
+  // Update the toggle handlers
+  const handleAutoSyncToggle = async (value: boolean) => {
     try {
-      // Simulate sync process
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      Alert.alert(
-        'Sync Complete',
-        'Your collection has been successfully synchronized.',
-        [{ text: 'OK' }]
-      );
+      await updateSyncSettings({ autoSync: value });
     } catch (error) {
-      Alert.alert(
-        'Sync Failed',
-        'There was an error synchronizing your collection. Please try again.',
-        [{ text: 'OK' }]
-      );
-    } finally {
-      setIsLoading(false);
+      Alert.alert('Error', 'Failed to update auto-sync setting');
+    }
+  };
+
+  const handleWifiOnlyToggle = async (value: boolean) => {
+    try {
+      await updateSyncSettings({ wifiOnly: value });
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update WiFi-only setting');
+    }
+  };
+
+  // Update the sync function
+  const syncCollection = async () => {
+    if (syncSettings.wifiOnly) {
+      const isWifi = await isConnectedToWifi();
+      if (!isWifi) {
+        Alert.alert(t('errors.wifiRequired'), t('errors.pleaseConnectWifi'));
+        return;
+      }
+    }
+
+    setSyncState(prev => ({ ...prev, isSyncing: true, error: null }));
+    try {
+      await api.syncCollection();
+      const now = new Date();
+      await updateSyncSettings({ lastSynced: now });
+      setSyncState(prev => ({ ...prev, lastSynced: now, isSyncing: false }));
+    } catch (error) {
+      const apiError = error as ApiError;
+      setSyncState(prev => ({ ...prev, error: apiError.message, isSyncing: false }));
+      Alert.alert(t('errors.syncFailed'), apiError.message);
+    }
+  };
+
+  const resetSync = async () => {
+    setSyncState(prev => ({ ...prev, isSyncing: true, error: null }));
+    try {
+      await api.clearSyncData();
+      
+      // Reset state
+      setSyncState({
+        lastSynced: null,
+        isSyncing: false,
+        error: null,
+        storage: 0,
+        frequency: syncSettings.frequency,
+        batteryUsage: 'Low',
+        batteryImpact: 0,
+        storageDetails: {
+          images: 0,
+          metadata: 0,
+          total: 0
+        }
+      });
+
+      // Reset sync settings
+      await updateSyncSettings({
+        lastSynced: null
+      });
+
+      // Perform new sync
+      await syncCollection();
+    } catch (error) {
+      const apiError = error as ApiError;
+      setSyncState(prev => ({ ...prev, error: apiError.message, isSyncing: false }));
+      Alert.alert(t('errors.resetFailed'), apiError.message);
     }
   };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
-      
-      {/* Header */}
-      <View style={[styles.header, { 
-        borderBottomColor: colors.border,
-        backgroundColor: colors.background 
-      }]}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          style={styles.backButton}
-          activeOpacity={0.7}
-        >
+      <View style={[styles.header, { borderBottomColor: colors.border, backgroundColor: colors.background }]}>
+        <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} style={styles.backButton}>
           <ChevronLeft size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Sync Settings</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{t('Sync Settings')}</Text>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Sync Status */}
         <View style={[styles.statusCard, { backgroundColor: colors.surface }]}>
           <View style={styles.statusRow}>
-            <CheckCircle2 size={20} color={colors.primary} />
+            <CheckCircle2 size={20} color={syncState.error ? '#FF4444' : colors.primary} />
             <Text style={[styles.statusText, { color: colors.text }]}>
-              Last synced: 2 minutes ago
+              {syncState.lastSynced ? `Last synced: ${formatRelativeTime(syncState.lastSynced)}` : 'Not synced yet'}
             </Text>
           </View>
           <TouchableOpacity
             style={[styles.syncButton, { backgroundColor: colors.primary }]}
-            onPress={handleSyncNow}
-            disabled={isLoading}
+            onPress={syncCollection}
+            disabled={syncState.isSyncing}
           >
-            {isLoading ? (
+            {syncState.isSyncing ? (
               <ActivityIndicator color="#fff" />
             ) : (
               <>
@@ -180,86 +288,68 @@ export default function SyncSettingsScreen() {
         </View>
 
         <SectionHeader title="SYNC OPTIONS" colors={colors} />
-        <View style={[styles.section, { 
-          backgroundColor: colors.background,
-          borderColor: colors.border 
-        }]}>
-          <SettingItem
-            icon={Cloud}
-            label="Auto-Sync"
-            description="Automatically sync collection changes"
-            action={
-              <ToggleSwitch
-                enabled={autoSync}
-                onToggle={setAutoSync}
-                colors={colors}
-              />
-            }
-            colors={colors}
-          />
-          <SettingItem
-            icon={Wifi}
-            label="Sync on Wi-Fi Only"
-            description="Save mobile data by syncing only on Wi-Fi"
-            action={
-              <ToggleSwitch
-                enabled={wifiOnly}
-                onToggle={setWifiOnly}
-                colors={colors}
-              />
-            }
-            colors={colors}
-          />
+        <View style={[styles.section, { backgroundColor: colors.background, borderColor: colors.border }]}>
+        <SettingItem
+      icon={Cloud}
+      label="Auto-Sync"
+      description="Automatically sync collection changes"
+      action={
+        <ToggleSwitch 
+          enabled={syncSettings.autoSync} 
+          onToggle={handleAutoSyncToggle} 
+          colors={colors} 
+        />
+      }
+      colors={colors}
+    />
+    <SettingItem
+      icon={Wifi}
+      label="Sync on Wi-Fi Only"
+      description="Save mobile data by syncing only on Wi-Fi"
+      action={
+        <ToggleSwitch 
+          enabled={syncSettings.wifiOnly} 
+          onToggle={handleWifiOnlyToggle} 
+          colors={colors} 
+        />
+      }
+      colors={colors}
+    />
         </View>
 
         <SectionHeader title="SYNC DETAILS" colors={colors} />
-        <View style={[styles.section, { 
-          backgroundColor: colors.background,
-          borderColor: colors.border 
-        }]}>
+        <View style={[styles.section, { backgroundColor: colors.background, borderColor: colors.border }]}>
           <SettingItem
             icon={Database}
             label="Storage Used"
-            value="24.5 MB"
+            value={`${(syncState.storage / 1024 / 1024).toFixed(1)} MB`}
             colors={colors}
           />
           <SettingItem
             icon={Clock}
             label="Sync Frequency"
-            value="Every 15 minutes"
+            value={`Every ${syncState.frequency} minutes`}
             colors={colors}
           />
           <SettingItem
             icon={Battery}
             label="Battery Usage"
-            value="Low"
+            value={syncState.batteryUsage}
             colors={colors}
           />
         </View>
 
-        <TouchableOpacity 
-          style={styles.resetButton}
-          onPress={() => {
-            Alert.alert(
-              'Reset Sync',
-              'This will clear all synced data and perform a full sync. Continue?',
-              [
-                {
-                  text: 'Cancel',
-                  style: 'cancel',
-                },
-                {
-                  text: 'Reset',
-                  style: 'destructive',
-                  onPress: handleSyncNow,
-                },
-              ]
-            );
-          }}
-        >
-          <Text style={[styles.resetButtonText, { color: colors.primary }]}>
-            Reset Sync Data
-          </Text>
+        <TouchableOpacity style={styles.resetButton} onPress={() => {
+          Alert.alert(
+            'Reset Sync',
+            'This will clear all synced data and perform a full sync. Continue?',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Reset', style: 'destructive', onPress: resetSync },
+            ]
+          );
+        }}>
+          <Text style={[styles.resetButtonText, { color: colors.primary }]}>Reset Sync Data</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -375,4 +465,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Inter-Medium',
   },
+  
 });

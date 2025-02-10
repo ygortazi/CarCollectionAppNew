@@ -43,6 +43,15 @@ export default function CarDetailsCatalogScreen() {
     const [isInUserWishlist, setIsInUserWishlist] = useState(false);
     const [wishlistItemId, setWishlistItemId] = useState<string | null>(null);
 
+    const renderDetailPair = (label: string, value: string | undefined | null) => {
+        if (!value) return null;
+        return (
+            <Text style={[styles.detailText, { color: colors.secondary }]}>
+                {label}: {value}
+            </Text>
+        );
+    };
+
     const fetchCarDetails = async () => {
         if (!id) return;
 
@@ -145,7 +154,7 @@ export default function CarDetailsCatalogScreen() {
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
             <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
-
+    
             <View style={[styles.header, {
                 borderBottomColor: colors.border,
                 backgroundColor: colors.background
@@ -160,7 +169,7 @@ export default function CarDetailsCatalogScreen() {
                 <Text style={[styles.headerTitle, { color: colors.text }]}>Car Details</Text>
                 <View style={styles.headerRight} />
             </View>
-
+    
             <ScrollView
                 style={styles.content}
                 showsVerticalScrollIndicator={false}
@@ -170,42 +179,28 @@ export default function CarDetailsCatalogScreen() {
                     backgroundColor={colors.surface}
                     mode="detail"
                 />
-
+    
                 <View style={[styles.detailsContainer, { backgroundColor: colors.background }]}>
                     <View style={styles.section}>
                         <Text style={[styles.carName, { color: colors.text }]}>{car.name}</Text>
-
+    
                         <View style={styles.carDetails}>
-                            <Text style={[styles.detailText, { color: colors.secondary }]}>
-                                Toy #: {car.toyNumber}
-                            </Text>
-                            <Text style={[styles.detailText, { color: colors.secondary }]}>
-                                Series: {car.series} • {car.seriesNumber}
-                            </Text>
-                            <Text style={[styles.detailText, { color: colors.secondary }]}>
-                                Year: {car.year} • {car.yearNumber}
-                            </Text>
-                            <Text style={[styles.detailText, { color: colors.secondary }]}>
-                                Color: {car.color}
-                            </Text>
-                            <Text style={[styles.detailText, { color: colors.secondary }]}>
-                                Tampo: {car.tampo}
-                            </Text>
-                            <Text style={[styles.detailText, { color: colors.secondary }]}>
-                                Base Color: {car.baseColor}
-                            </Text>
-                            <Text style={[styles.detailText, { color: colors.secondary }]}>
-                                Window Color: {car.windowColor}
-                            </Text>
-                            <Text style={[styles.detailText, { color: colors.secondary }]}>
-                                Interior Color: {car.interiorColor}
-                            </Text>
-                            <Text style={[styles.detailText, { color: colors.secondary }]}>
-                                Wheel Type: {car.wheelType}
-                            </Text>
+                            {renderDetailPair("Brand", car.brand)}
+                            {renderDetailPair("Toy #", car.toyNumber)}
+                            {renderDetailPair("Series", car.series)}
+                            {renderDetailPair("Series #", car.seriesNumber)}
+                            {renderDetailPair("Year", car.year)}
+                            {renderDetailPair("Year #", car.yearNumber)}
+                            {renderDetailPair("Color", car.color)}
+                            {renderDetailPair("Manufacturer", car.manufacturer)}
+                            {renderDetailPair("Tampo", car.tampo)}
+                            {renderDetailPair("Base Color", car.baseColor)}
+                            {renderDetailPair("Window Color", car.windowColor)}
+                            {renderDetailPair("Interior Color", car.interiorColor)}
+                            {renderDetailPair("Wheel Type", car.wheelType)}
                         </View>
                     </View>
-
+    
                     <View style={styles.actionButtons}>
                         <TouchableOpacity
                             style={[styles.addButton, { backgroundColor: colors.primary }]}
@@ -244,7 +239,7 @@ export default function CarDetailsCatalogScreen() {
                     </View>
                 </View>
             </ScrollView>
-
+    
             {user?.plan === 'Free' && (
                 <View style={[styles.premiumBanner, { backgroundColor: colors.primary }]}>
                     <Text style={styles.premiumText}>

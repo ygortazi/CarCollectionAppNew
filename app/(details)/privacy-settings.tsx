@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -22,6 +22,10 @@ import { useTheme } from '../../context/theme';
 import { Colors } from '../../constants/Colors';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import { useAuth } from '../../context/auth';
+import { useSettings } from '../../context/settings';
+import * as LocalAuthentication from 'expo-local-authentication';
+import type { UserPreferences } from '../../types/models';
 
 interface ToggleSwitchProps {
   enabled: boolean;
@@ -93,28 +97,128 @@ const SettingItem: React.FC<SettingItemProps> = ({
     )}
   </TouchableOpacity>
 );
+
 export default function PrivacySettingsScreen() {
   const router = useRouter();
   const { theme } = useTheme();
   const colors = Colors[theme];
+  const { user } = useAuth();
+  const { settings, updateSettings, isLoading } = useSettings();
   
-  const [dataCollection, setDataCollection] = useState(true);
-  const [activityHistory, setActivityHistory] = useState(true);
-  const [biometricAuth, setBiometricAuth] = useState(false);
+  // Initialize state from settings
+  const [dataCollection, setDataCollection] = useState(
+    settings?.privacy?.dataCollection ?? true
+  );
+  const [activityHistory, setActivityHistory] = useState(
+    settings?.privacy?.activityHistory ?? true
+  );
+  const [biometricAuth, setBiometricAuth] = useState(
+    settings?.privacy?.biometricAuth ?? false
+  );
+  const [isBiometricAvailable, setIsBiometricAvailable] = useState(false);
+
+  useEffect(() => {
+    checkBiometricAvailability();
+  }, []);
+
+  const checkBiometricAvailability = async () => {
+    try {
+      const available = await LocalAuthentication.hasHardwareAsync();
+      setIsBiometricAvailable(available);
+    } catch (error) {
+      console.error('Error checking biometric availability:', error);
+      setIsBiometricAvailable(false);
+    }
+  };
+
+  const handleToggle = async (
+    setting: 'dataCollection' | 'activityHistory' | 'biometricAuth',
+    value: boolean
+  ) => {
+    if (!user?.uid) {
+      Alert.alert('Error', 'You must be logged in to change privacy settings');
+      return;
+    }
+
+    try {
+      // Update local state immediately for responsive UI
+      switch (setting) {
+        case 'dataCollection':
+          setDataCollection(value);
+          break;
+        case 'activityHistory':
+          setActivityHistory(value);
+          break;
+        case 'biometricAuth':
+          if (value && isBiometricAvailable) {
+            const result = await LocalAuthentication.authenticateAsync({
+              promptMessage: 'Authenticate to enable biometric login',
+            });
+            if (!result.success) {
+              Alert.alert('Authentication Failed', 'Please try again');
+              return;
+            }
+          }
+          setBiometricAuth(value);
+          break;
+      }
+
+      // Update settings in Firebase
+      await updateSettings({
+        privacy: {
+          ...settings.privacy,
+          [setting]: value
+        }
+      });
+
+    } catch (error) {
+      // Revert local state on error
+      switch (setting) {
+        case 'dataCollection':
+          setDataCollection(!value);
+          break;
+        case 'activityHistory':
+          setActivityHistory(!value);
+          break;
+        case 'biometricAuth':
+          setBiometricAuth(!value);
+          break;
+      }
+      
+      console.error(`Error updating ${setting}:`, error);
+      Alert.alert('Error', 'Failed to update privacy settings. Please try again.');
+    }
+  };
 
   const handleNavigation = (screen: string) => {
-    Alert.alert(
-      'Coming Soon',
-      'This feature will be available in a future update.',
-      [{ text: 'OK' }]
-    );
+    switch(screen) {
+      case 'profile-visibility':
+        router.push('/(details)/profile-visibility');
+        break;
+      case 'data-sharing':
+        router.push('/(details)/data-sharing');
+        break;
+      default:
+        Alert.alert(
+          'Coming Soon',
+          'This feature will be available in a future update.',
+          [{ text: 'OK' }]
+        );
+    }
   };
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <Text style={[styles.loadingText, { color: colors.text }]}>Loading...</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
       
-      {/* Header */}
       <View style={[styles.header, { 
         borderBottomColor: colors.border,
         backgroundColor: colors.background 
@@ -149,7 +253,7 @@ export default function PrivacySettingsScreen() {
             action={
               <ToggleSwitch
                 enabled={dataCollection}
-                onToggle={setDataCollection}
+                onToggle={(value) => handleToggle('dataCollection', value)}
                 colors={colors}
               />
             }
@@ -162,25 +266,27 @@ export default function PrivacySettingsScreen() {
             action={
               <ToggleSwitch
                 enabled={activityHistory}
-                onToggle={setActivityHistory}
+                onToggle={(value) => handleToggle('activityHistory', value)}
                 colors={colors}
               />
             }
             colors={colors}
           />
-          <SettingItem
-            icon={Fingerprint}
-            label="Biometric Authentication"
-            description="Use Face ID or fingerprint to secure your account"
-            action={
-              <ToggleSwitch
-                enabled={biometricAuth}
-                onToggle={setBiometricAuth}
-                colors={colors}
-              />
-            }
-            colors={colors}
-          />
+          {isBiometricAvailable && (
+            <SettingItem
+              icon={Fingerprint}
+              label="Biometric Authentication"
+              description="Use Face ID or fingerprint to secure your account"
+              action={
+                <ToggleSwitch
+                  enabled={biometricAuth}
+                  onToggle={(value) => handleToggle('biometricAuth', value)}
+                  colors={colors}
+                />
+              }
+              colors={colors}
+            />
+          )}
           <SettingItem
             icon={Share}
             label="Data Sharing"
@@ -270,5 +376,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     paddingVertical: 24,
     lineHeight: 18,
+  },
+  loadingText: {
+    textAlign: 'center',
+    marginTop: 20,
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
   },
 });

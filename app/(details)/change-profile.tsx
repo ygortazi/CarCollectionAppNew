@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/auth';
 import { useTheme } from '../../context/theme';
 import { Colors } from '../../constants/Colors';
+import { updateUserProfile } from '../../services/firestone';
 
 export default function ChangeProfileScreen() {
     const router = useRouter();
@@ -24,7 +25,7 @@ export default function ChangeProfileScreen() {
             Alert.alert('Error', 'Please enter a username');
             return;
         }
-
+    
         setIsLoading(true);
         try {
             await changeUsername(newUsername);
@@ -37,23 +38,23 @@ export default function ChangeProfileScreen() {
             setIsLoading(false);
         }
     };
-
+    
     const handleChangePassword = async () => {
         if (!currentPassword || !newPassword || !confirmNewPassword) {
             Alert.alert('Error', 'Please fill in all password fields');
             return;
         }
-
+    
         if (newPassword !== confirmNewPassword) {
             Alert.alert('Error', 'New passwords do not match');
             return;
         }
-
+    
         if (newPassword.length < 6) {
             Alert.alert('Error', 'New password must be at least 6 characters');
             return;
         }
-
+    
         setIsLoading(true);
         try {
             await changePassword(currentPassword, newPassword);

@@ -6,6 +6,7 @@ import {
     TouchableOpacity,
     ScrollView,
     Image,
+    ImageSourcePropType,
     Platform,
     Alert,
     KeyboardAvoidingView,
@@ -36,9 +37,25 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
 import { uploadImage, deleteImage, generateStoragePath } from '../../utils/storage';
-import type { StorageImage } from '../../types/storage';
 import { getCar, updateCar } from '../../services/firestone';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
+import { getStorage, ref, getDownloadURL } from 'firebase/storage';
+
+const storage = getStorage();
+
+interface ImageObject {
+    uri: string;
+}
+
+interface StorageImage {
+    uri: string;
+    downloadURL: string;
+    path: string;
+}
+
+type ImageSource = {
+    uri: string;
+} | number;
 
 interface CustomField {
     name: string;
@@ -53,6 +70,8 @@ interface CarFormData {
     yearNumber: string;
     toyNumber: string;
     color: string;
+    brand: string;
+    manufacturer: string;
     tampo: string;
     baseColor: string;
     windowColor: string;
@@ -63,6 +82,7 @@ interface CarFormData {
     purchaseStore: string;
     notes: string;
     customFields: CustomField[];
+    images: StorageImage[];
 }
 
 interface FormErrors {
@@ -80,9 +100,60 @@ interface DraggablePhotoProps {
 const THUMBNAIL_WIDTH = 100;
 const THUMBNAIL_GAP = 12;
 
+async function getImageSource(image: StorageImage): Promise<ImageSourcePropType> {
+    if (!image) {
+        return require('assets/placeholder-image.png');
+    }
+
+    try {
+        if (image.path.startsWith('gs://')) {
+            try {
+                const gsPath = image.path.replace(/^gs:\/\/[^\/]+\//, '');
+                const imageRef = ref(storage, gsPath);
+                const url = await getDownloadURL(imageRef);
+                return { uri: url };
+            } catch (error) {
+                console.log('Error getting URL from gs path:', error);
+            }
+        }
+
+        if (image.path) {
+            try {
+                const imageRef = ref(storage, image.path);
+                const url = await getDownloadURL(imageRef);
+                return { uri: url };
+            } catch (error) {
+                console.log('Error getting URL from path:', error);
+            }
+        }
+
+        if (image.downloadURL) {
+            return { uri: image.downloadURL };
+        }
+
+        if (image.uri) {
+            return { uri: image.uri };
+        }
+
+        return require('assets/placeholder-image.png');
+    } catch (error) {
+        console.error('Error getting image URL:', error);
+        return require('assets/placeholder-image.png');
+    }
+}
+
 const DraggablePhoto = React.memo(({ image, index, onReorder, onRemove, totalImages }: DraggablePhotoProps) => {
+    const [imageUrl, setImageUrl] = useState<ImageSourcePropType>(require('assets/placeholder-image.png'));
     const position = useSharedValue({ x: 0, y: 0 });
     const isDragging = useSharedValue(false);
+
+    useEffect(() => {
+        const loadImage = async () => {
+            const source = await getImageSource(image);
+            setImageUrl(source);
+        };
+        loadImage();
+    }, [image]);
 
     const panGestureEvent = useAnimatedGestureHandler({
         onStart: (_, ctx: any) => {
@@ -144,7 +215,7 @@ const DraggablePhoto = React.memo(({ image, index, onReorder, onRemove, totalIma
         <PanGestureHandler onGestureEvent={panGestureEvent}>
             <Animated.View style={[styles.photoWrapper, animatedStyle]}>
                 <Image
-                    source={{ uri: image.uri }}
+                    source={imageUrl}
                     style={styles.photo}
                 />
                 <TouchableOpacity
@@ -183,6 +254,8 @@ export default function EditCarScreen() {
         yearNumber: '',
         toyNumber: '',
         color: '',
+        brand: '',
+        manufacturer: '',
         tampo: '',
         baseColor: '',
         windowColor: '',
@@ -193,9 +266,10 @@ export default function EditCarScreen() {
         purchaseStore: '',
         notes: '',
         customFields: [],
+        images: []
     });
 
-     const [errors, setErrors] = useState<FormErrors>({});
+    const [errors, setErrors] = useState<FormErrors>({});
     const [customImages, setCustomImages] = useState<StorageImage[]>([]);
 
     const handleAddField = useDismissAndExecute(() => {
@@ -227,34 +301,17 @@ export default function EditCarScreen() {
                 const carData = await getCar(id as string);
                 if (carData) {
                     const { images = [], customFields = [], ...rest } = carData as any;
+                    const formattedImages = images.map((img: any) => ({
+                        uri: img.uri || '',
+                        downloadURL: typeof img.downloadURL === 'string' ? img.downloadURL : '',
+                        path: img.path || ''
+                    }));
 
-                    // Extract the correct downloadURL from the nested structure
-                    const formattedImages = images.map((img: any) => {
-                        // Handle first image format
-                        if (img.uri?.path?.downloadURL) {
-                            return {
-                                uri: img.uri.path.downloadURL,
-                                downloadURL: img.uri.path.downloadURL,
-                                path: img.uri.path.path
-                            };
-                        }
-                        // Handle second image format
-                        if (img.uri?.downloadURL) {
-                            return {
-                                uri: img.uri.downloadURL,
-                                downloadURL: img.uri.downloadURL,
-                                path: img.uri.path
-                            };
-                        }
-                        // Fallback for other formats
-                        return {
-                            uri: img.downloadURL || img.uri || '',
-                            downloadURL: img.downloadURL || '',
-                            path: img.path || ''
-                        };
+                    setFormData({ 
+                        ...rest, 
+                        customFields,
+                        images: formattedImages
                     });
-
-                    setFormData({ ...rest, customFields });
                     setCustomImages(formattedImages);
                 }
             } catch (error) {
@@ -325,7 +382,8 @@ export default function EditCarScreen() {
                 const path = generateStoragePath(user!.uid, 'cars', filename);
 
                 const downloadURL = await uploadImage(uri, path);
-                setCustomImages(prev => [...prev, { uri, downloadURL, path }]);
+                const newImage: StorageImage = { uri, downloadURL, path };
+                setCustomImages(prev => [...prev, newImage]);
             }
         } catch (error) {
             Alert.alert('Error', 'Failed to take photo. Please try again.');
@@ -355,7 +413,8 @@ export default function EditCarScreen() {
                 const path = generateStoragePath(user!.uid, 'cars', filename);
 
                 const downloadURL = await uploadImage(uri, path);
-                setCustomImages(prev => [...prev, { uri, downloadURL, path }]);
+                const newImage: StorageImage = { uri, downloadURL, path };
+                setCustomImages(prev => [...prev, newImage]);
             }
         } catch (error) {
             Alert.alert('Error', 'Failed to upload image. Please try again.');
@@ -378,27 +437,23 @@ export default function EditCarScreen() {
     const handleRemovePhoto = useCallback(async (index: number) => {
         try {
             const image = customImages[index];
-            if (!image.path) {
-                console.warn('No storage path found for image');
-                setCustomImages(prev => prev.filter((_, i) => i !== index));
-                return;
-            }
-
-            const match = image.path.match(/collections\/(.+?)\//);
-            if (match) {
-                await deleteImage(image.path);
-            } else {
-                const filename = image.path.split('/').pop();
-                if (filename && user?.uid) {
-                    const correctedPath = generateStoragePath(user.uid, 'cars', filename);
-                    await deleteImage(correctedPath);
+            if (image.path) {
+                if (typeof image.path === 'string') {
+                    if (image.path.includes('collections/')) {
+                        await deleteImage(image.path);
+                    } else {
+                        const filename = image.path.split('/').pop();
+                        if (filename && user?.uid) {
+                            const correctedPath = generateStoragePath(user.uid, 'cars', filename);
+                            await deleteImage(correctedPath);
+                        }
+                    }
                 }
             }
 
             setCustomImages(prev => prev.filter((_, i) => i !== index));
         } catch (error: any) {
             if (error?.code === 'storage/object-not-found') {
-                console.warn('Image not found in storage, removing from UI');
                 setCustomImages(prev => prev.filter((_, i) => i !== index));
                 return;
             }
@@ -413,13 +468,15 @@ export default function EditCarScreen() {
 
         setIsLoading(true);
         try {
+            const updatedImages = customImages.map(img => ({
+                uri: img.uri,
+                downloadURL: img.downloadURL,
+                path: img.path
+            }));
+
             await updateCar(id as string, {
                 ...formData,
-                images: customImages.map(img => ({
-                    uri: img.uri || '',
-                    downloadURL: typeof img.downloadURL === 'string' ? img.downloadURL : '',
-                    path: img.path || ''
-                })),
+                images: updatedImages,
                 updatedAt: new Date(),
             });
             router.back();
@@ -517,222 +574,255 @@ export default function EditCarScreen() {
 
                     {/* Car Details Section */}
                     <View style={[styles.section, { borderBottomColor: colors.border }]}>
-                        <Text style={[styles.sectionTitle, { color: colors.text }]}>Car Details</Text>
+    <Text style={[styles.sectionTitle, { color: colors.text }]}>Car Details</Text>
 
-                        <View style={styles.formGroup}>
-                            <Text style={[styles.label, { color: colors.text }]}>Name</Text>
-                            <TextInput
-                                style={[styles.input, {
-                                    borderColor: errors.name ? '#FF3B30' : colors.border,
-                                    backgroundColor: colors.background,
-                                    color: colors.text
-                                }]}
-                                value={formData.name}
-                                onChangeText={(text) => {
-                                    setFormData(prev => ({ ...prev, name: text }));
-                                    if (errors.name) {
-                                        const newErrors = { ...errors };
-                                        delete newErrors.name;
-                                        setErrors(newErrors);
-                                    }
-                                }}
-                                placeholder="Enter car name"
-                                placeholderTextColor={colors.secondary}
-                                editable={!isLoading}
-                            />
-                            {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
-                        </View>
+    <View style={styles.formGroup}>
+        <Text style={[styles.label, { color: colors.text }]}>Name</Text>
+        <TextInput
+            style={[styles.input, {
+                borderColor: errors.name ? '#FF3B30' : colors.border,
+                backgroundColor: colors.background,
+                color: colors.text
+            }]}
+            value={formData.name}
+            onChangeText={(text) => {
+                setFormData(prev => ({ ...prev, name: text }));
+                if (errors.name) {
+                    const newErrors = { ...errors };
+                    delete newErrors.name;
+                    setErrors(newErrors);
+                }
+            }}
+            placeholder="Enter car name"
+            placeholderTextColor={colors.secondary}
+            editable={!isLoading}
+        />
+        {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
+    </View>
 
-                        <View style={styles.formGroup}>
-                            <Text style={[styles.label, { color: colors.text }]}>Toy #</Text>
-                            <TextInput
-                                style={[styles.input, {
-                                    borderColor: errors.toyNumber ? '#FF3B30' : colors.border,
-                                    backgroundColor: colors.background,
-                                    color: colors.text
-                                }]}
-                                value={formData.toyNumber}
-                                onChangeText={(text) => {
-                                    setFormData(prev => ({ ...prev, toyNumber: text }));
-                                    if (errors.toyNumber) {
-                                        const newErrors = { ...errors };
-                                        delete newErrors.toyNumber;
-                                        setErrors(newErrors);
-                                    }
-                                }}
-                                placeholder="Enter toy number"
-                                placeholderTextColor={colors.secondary}
-                                editable={!isLoading}
-                            />
-                            {errors.toyNumber && <Text style={styles.errorText}>{errors.toyNumber}</Text>}
-                        </View>
+    <View style={styles.formGroup}>
+        <Text style={[styles.label, { color: colors.text }]}>Toy #</Text>
+        <TextInput
+            style={[styles.input, {
+                borderColor: errors.toyNumber ? '#FF3B30' : colors.border,
+                backgroundColor: colors.background,
+                color: colors.text
+            }]}
+            value={formData.toyNumber}
+            onChangeText={(text) => {
+                setFormData(prev => ({ ...prev, toyNumber: text }));
+                if (errors.toyNumber) {
+                    const newErrors = { ...errors };
+                    delete newErrors.toyNumber;
+                    setErrors(newErrors);
+                }
+            }}
+            placeholder="Enter toy number"
+            placeholderTextColor={colors.secondary}
+            editable={!isLoading}
+        />
+        {errors.toyNumber && <Text style={styles.errorText}>{errors.toyNumber}</Text>}
+    </View>
 
-                        <View style={styles.formRow}>
-                            <View style={[styles.formGroup, { flex: 1 }]}>
-                                <Text style={[styles.label, { color: colors.text }]}>Series</Text>
-                                <TextInput
-                                    style={[styles.input, {
-                                        borderColor: colors.border,
-                                        backgroundColor: colors.background,
-                                        color: colors.text
-                                    }]}
-                                    value={formData.series}
-                                    onChangeText={text => setFormData(prev => ({ ...prev, series: text }))}
-                                    placeholder="Enter series"
-                                    placeholderTextColor={colors.secondary}
-                                    editable={!isLoading}
-                                />
-                            </View>
-                            <View style={[styles.formGroup, { flex: 0.5, marginLeft: 12 }]}>
-                                <Text style={[styles.label, { color: colors.text }]}>Series #</Text>
-                                <TextInput
-                                    style={[styles.input, {
-                                        borderColor: colors.border,
-                                        backgroundColor: colors.background,
-                                        color: colors.text
-                                    }]}
-                                    value={formData.seriesNumber}
-                                    onChangeText={text => setFormData(prev => ({ ...prev, seriesNumber: text }))}
-                                    placeholder="0/10"
-                                    placeholderTextColor={colors.secondary}
-                                    editable={!isLoading}
-                                />
-                            </View>
-                        </View>
+    <View style={styles.formRow}>
+        <View style={[styles.formGroup, { flex: 1 }]}>
+            <Text style={[styles.label, { color: colors.text }]}>Series</Text>
+            <TextInput
+                style={[styles.input, {
+                    borderColor: colors.border,
+                    backgroundColor: colors.background,
+                    color: colors.text
+                }]}
+                value={formData.series}
+                onChangeText={text => setFormData(prev => ({ ...prev, series: text }))}
+                placeholder="Enter series"
+                placeholderTextColor={colors.secondary}
+                editable={!isLoading}
+            />
+        </View>
+        <View style={[styles.formGroup, { flex: 0.5, marginLeft: 12 }]}>
+            <Text style={[styles.label, { color: colors.text }]}>Series #</Text>
+            <TextInput
+                style={[styles.input, {
+                    borderColor: colors.border,
+                    backgroundColor: colors.background,
+                    color: colors.text
+                }]}
+                value={formData.seriesNumber}
+                onChangeText={text => setFormData(prev => ({ ...prev, seriesNumber: text }))}
+                placeholder="0/10"
+                placeholderTextColor={colors.secondary}
+                editable={!isLoading}
+            />
+        </View>
+    </View>
 
-                        <View style={styles.formRow}>
-                            <View style={[styles.formGroup, { flex: 1 }]}>
-                                <Text style={[styles.label, { color: colors.text }]}>Year</Text>
-                                <TextInput
-                                    style={[styles.input, {
-                                        borderColor: colors.border,
-                                        backgroundColor: colors.background,
-                                        color: colors.text
-                                    }]}
-                                    value={formData.year}
-                                    onChangeText={text => setFormData(prev => ({ ...prev, year: text }))}
-                                    placeholder="Enter year"
-                                    placeholderTextColor={colors.secondary}
-                                    keyboardType="numeric"
-                                    editable={!isLoading}
-                                />
-                            </View>
-                            <View style={[styles.formGroup, { flex: 1, marginLeft: 12 }]}>
-                                <Text style={[styles.label, { color: colors.text }]}>Year #</Text>
-                                <TextInput
-                                    style={[styles.input, {
-                                        borderColor: colors.border,
-                                        backgroundColor: colors.background,
-                                        color: colors.text
-                                    }]}
-                                    value={formData.yearNumber}
-                                    onChangeText={text => setFormData(prev => ({ ...prev, yearNumber: text }))}
-                                    placeholder="000/250"
-                                    placeholderTextColor={colors.secondary}
-                                    editable={!isLoading}
-                                />
-                            </View>
-                        </View>
+    <View style={styles.formRow}>
+        <View style={[styles.formGroup, { flex: 1 }]}>
+            <Text style={[styles.label, { color: colors.text }]}>Brand</Text>
+            <TextInput
+                style={[styles.input, {
+                    borderColor: colors.border,
+                    backgroundColor: colors.background,
+                    color: colors.text
+                }]}
+                value={formData.brand}
+                onChangeText={text => setFormData(prev => ({ ...prev, brand: text }))}
+                placeholder="Enter brand"
+                placeholderTextColor={colors.secondary}
+                editable={!isLoading}
+            />
+        </View>
+        <View style={[styles.formGroup, { flex: 1, marginLeft: 12 }]}>
+            <Text style={[styles.label, { color: colors.text }]}>Manufacturer</Text>
+            <TextInput
+                style={[styles.input, {
+                    borderColor: colors.border,
+                    backgroundColor: colors.background,
+                    color: colors.text
+                }]}
+                value={formData.manufacturer}
+                onChangeText={text => setFormData(prev => ({ ...prev, manufacturer: text }))}
+                placeholder="Enter manufacturer"
+                placeholderTextColor={colors.secondary}
+                editable={!isLoading}
+            />
+        </View>
+    </View>
 
-                        <View style={styles.formRow}>
-                            <View style={[styles.formGroup, { flex: 1 }]}>
-                                <Text style={[styles.label, { color: colors.text }]}>Color</Text>
-                                <TextInput
-                                    style={[styles.input, {
-                                        borderColor: colors.border,
-                                        backgroundColor: colors.background,
-                                        color: colors.text
-                                    }]}
-                                    value={formData.color}
-                                    onChangeText={text => setFormData(prev => ({ ...prev, color: text }))}
-                                    placeholder="Enter color"
-                                    placeholderTextColor={colors.secondary}
-                                    editable={!isLoading}
-                                />
-                            </View>
-                            <View style={[styles.formGroup, { flex: 1, marginLeft: 12 }]}>
-                                <Text style={[styles.label, { color: colors.text }]}>Tampo</Text>
-                                <TextInput
-                                    style={[styles.input, {
-                                        borderColor: colors.border,
-                                        backgroundColor: colors.background,
-                                        color: colors.text
-                                    }]}
-                                    value={formData.tampo}
-                                    onChangeText={text => setFormData(prev => ({ ...prev, tampo: text }))}
-                                    placeholder="Enter tampo"
-                                    placeholderTextColor={colors.secondary}
-                                    editable={!isLoading}
-                                />
-                            </View>
-                        </View>
+    <View style={styles.formRow}>
+        <View style={[styles.formGroup, { flex: 1 }]}>
+            <Text style={[styles.label, { color: colors.text }]}>Year</Text>
+            <TextInput
+                style={[styles.input, {
+                    borderColor: colors.border,
+                    backgroundColor: colors.background,
+                    color: colors.text
+                }]}
+                value={formData.year}
+                onChangeText={text => setFormData(prev => ({ ...prev, year: text }))}
+                placeholder="Enter year"
+                placeholderTextColor={colors.secondary}
+                keyboardType="numeric"
+                editable={!isLoading}
+            />
+        </View>
+        <View style={[styles.formGroup, { flex: 1, marginLeft: 12 }]}>
+            <Text style={[styles.label, { color: colors.text }]}>Year #</Text>
+            <TextInput
+                style={[styles.input, {
+                    borderColor: colors.border,
+                    backgroundColor: colors.background,
+                    color: colors.text
+                }]}
+                value={formData.yearNumber}
+                onChangeText={text => setFormData(prev => ({ ...prev, yearNumber: text }))}
+                placeholder="000/250"
+                placeholderTextColor={colors.secondary}
+                editable={!isLoading}
+            />
+        </View>
+    </View>
 
-                        <View style={styles.formRow}>
-                            <View style={[styles.formGroup, { flex: 1 }]}>
-                                <Text style={[styles.label, { color: colors.text }]}>Base Color</Text>
-                                <TextInput
-                                    style={[styles.input, {
-                                        borderColor: colors.border,
-                                        backgroundColor: colors.background,
-                                        color: colors.text
-                                    }]}
-                                    value={formData.baseColor}
-                                    onChangeText={text => setFormData(prev => ({ ...prev, baseColor: text }))}
-                                    placeholder="Enter base color"
-                                    placeholderTextColor={colors.secondary}
-                                    editable={!isLoading}
-                                />
-                            </View>
-                            <View style={[styles.formGroup, { flex: 1, marginLeft: 12 }]}>
-                                <Text style={[styles.label, { color: colors.text }]}>Window Color</Text>
-                                <TextInput
-                                    style={[styles.input, {
-                                        borderColor: colors.border,
-                                        backgroundColor: colors.background,
-                                        color: colors.text
-                                    }]}
-                                    value={formData.windowColor}
-                                    onChangeText={text => setFormData(prev => ({ ...prev, windowColor: text }))}
-                                    placeholder="Enter window color"
-                                    placeholderTextColor={colors.secondary}
-                                    editable={!isLoading}
-                                />
-                            </View>
-                        </View>
+    <View style={styles.formRow}>
+        <View style={[styles.formGroup, { flex: 1 }]}>
+            <Text style={[styles.label, { color: colors.text }]}>Color</Text>
+            <TextInput
+                style={[styles.input, {
+                    borderColor: colors.border,
+                    backgroundColor: colors.background,
+                    color: colors.text
+                }]}
+                value={formData.color}
+                onChangeText={text => setFormData(prev => ({ ...prev, color: text }))}
+                placeholder="Enter color"
+                placeholderTextColor={colors.secondary}
+                editable={!isLoading}
+            />
+        </View>
+        <View style={[styles.formGroup, { flex: 1, marginLeft: 12 }]}>
+            <Text style={[styles.label, { color: colors.text }]}>Tampo</Text>
+            <TextInput
+                style={[styles.input, {
+                    borderColor: colors.border,
+                    backgroundColor: colors.background,
+                    color: colors.text
+                }]}
+                value={formData.tampo}
+                onChangeText={text => setFormData(prev => ({ ...prev, tampo: text }))}
+                placeholder="Enter tampo"
+                placeholderTextColor={colors.secondary}
+                editable={!isLoading}
+            />
+        </View>
+    </View>
 
-                        <View style={styles.formRow}>
-                            <View style={[styles.formGroup, { flex: 1 }]}>
-                                <Text style={[styles.label, { color: colors.text }]}>Interior Color</Text>
-                                <TextInput
-                                    style={[styles.input, {
-                                        borderColor: colors.border,
-                                        backgroundColor: colors.background,
-                                        color: colors.text
-                                    }]}
-                                    value={formData.interiorColor}
-                                    onChangeText={text => setFormData(prev => ({ ...prev, interiorColor: text }))}
-                                    placeholder="Enter interior color"
-                                    placeholderTextColor={colors.secondary}
-                                    editable={!isLoading}
-                                />
-                            </View>
-                            <View style={[styles.formGroup, { flex: 1, marginLeft: 12 }]}>
-                                <Text style={[styles.label, { color: colors.text }]}>Wheel Type</Text>
-                                <TextInput
-                                    style={[styles.input, {
-                                        borderColor: colors.border,
-                                        backgroundColor: colors.background,
-                                        color: colors.text
-                                    }]}
-                                    value={formData.wheelType}
-                                    onChangeText={text => setFormData(prev => ({ ...prev, wheelType: text }))}
-                                    placeholder="Enter wheel type"
-                                    placeholderTextColor={colors.secondary}
-                                    editable={!isLoading}
-                                />
-                            </View>
-                        </View>
-                    </View>
+    <View style={styles.formRow}>
+        <View style={[styles.formGroup, { flex: 1 }]}>
+            <Text style={[styles.label, { color: colors.text }]}>Base Color</Text>
+            <TextInput
+                style={[styles.input, {
+                    borderColor: colors.border,
+                    backgroundColor: colors.background,
+                    color: colors.text
+                }]}
+                value={formData.baseColor}
+                onChangeText={text => setFormData(prev => ({ ...prev, baseColor: text }))}
+                placeholder="Enter base color"
+                placeholderTextColor={colors.secondary}
+                editable={!isLoading}
+            />
+        </View>
+        <View style={[styles.formGroup, { flex: 1, marginLeft: 12 }]}>
+            <Text style={[styles.label, { color: colors.text }]}>Window Color</Text>
+            <TextInput
+                style={[styles.input, {
+                    borderColor: colors.border,
+                    backgroundColor: colors.background,
+                    color: colors.text
+                }]}
+                value={formData.windowColor}
+                onChangeText={text => setFormData(prev => ({ ...prev, windowColor: text }))}
+                placeholder="Enter window color"
+                placeholderTextColor={colors.secondary}
+                editable={!isLoading}
+            />
+        </View>
+    </View>
+
+    <View style={styles.formRow}>
+        <View style={[styles.formGroup, { flex: 1 }]}>
+            <Text style={[styles.label, { color: colors.text }]}>Interior Color</Text>
+            <TextInput
+                style={[styles.input, {
+                    borderColor: colors.border,
+                    backgroundColor: colors.background,
+                    color: colors.text
+                }]}
+                value={formData.interiorColor}
+                onChangeText={text => setFormData(prev => ({ ...prev, interiorColor: text }))}
+                placeholder="Enter interior color"
+                placeholderTextColor={colors.secondary}
+                editable={!isLoading}
+            />
+        </View>
+        <View style={[styles.formGroup, { flex: 1, marginLeft: 12 }]}>
+            <Text style={[styles.label, { color: colors.text }]}>Wheel Type</Text>
+            <TextInput
+                style={[styles.input, {
+                    borderColor: colors.border,
+                    backgroundColor: colors.background,
+                    color: colors.text
+                }]}
+                value={formData.wheelType}
+                onChangeText={text => setFormData(prev => ({ ...prev, wheelType: text }))}
+                placeholder="Enter wheel type"
+                placeholderTextColor={colors.secondary}
+                editable={!isLoading}
+            />
+        </View>
+    </View>
+</View>
 
 {/* Purchase Details Section */ }
     <View style={[styles.section, { borderBottomColor: colors.border }]}>

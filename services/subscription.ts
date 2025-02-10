@@ -1,4 +1,4 @@
-export type PlanType = 'Free' | 'Premium';
+export type PlanType = 'Free' | 'Premium' | 'Lifetime';
 export type SubscriptionInterval = 'monthly' | 'yearly' | 'lifetime';
 
 export interface SubscriptionPlan {

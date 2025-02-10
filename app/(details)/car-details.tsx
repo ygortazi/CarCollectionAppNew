@@ -51,12 +51,14 @@ const Details = ({ car, colors }: { car: Car | CatalogCar, colors: any }) => {
 
     return (
         <View style={styles.carDetails}>
+            {renderDetailPair("Brand", car.brand)} 
             {renderDetailPair("Toy #", car.toyNumber)}
             {renderDetailPair("Series", car.series)}
             {renderDetailPair("Series #", car.seriesNumber)}
             {renderDetailPair("Year", car.year)}
             {renderDetailPair("Year #", car.yearNumber)}
             {renderDetailPair("Color", car.color)}
+            {renderDetailPair("Manufacturer", car.manufacturer)}  
             {renderDetailPair("Tampo", car.tampo)}
             {renderDetailPair("Base Color", car.baseColor)}
             {renderDetailPair("Window Color", car.windowColor)}

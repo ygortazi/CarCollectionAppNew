@@ -1,4 +1,3 @@
-import { db } from 'config/firebase';
 import {
     collection,
     doc,
@@ -18,11 +17,22 @@ import {
     FirestoreError,
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { storage } from 'config/firebase';
+import { db, storage } from 'config/firebase';
 import type { Car, CatalogCar, UserPreferences, StorageImage } from 'types/models';
 
 const BATCH_SIZE = 500;
 const PAGE_SIZE = 20;
+
+interface FirestoreUserPreferences extends Omit<UserPreferences, 'preferences'> {
+    preferences: {
+      sync?: {
+        autoSync: boolean;
+        wifiOnly: boolean;
+        frequency: number;
+        lastSynced: Timestamp | null;
+      };
+    };
+  }
 
 function convertTimestampToDate(timestamp: Timestamp | FieldValue): Date {
     if (timestamp instanceof Timestamp) {
@@ -129,10 +139,10 @@ export async function getCar(carId: string, source: 'catalog' | 'collection' = '
                 if (catalogSnap.exists()) {
                     const data = catalogSnap.data();
                     const images = Array.isArray(data.photos || data.images) ?
-                        (data.photos || data.images).map((url: string) => ({
-                            uri: url,
-                            downloadURL: url,
-                            path: url
+                        (data.photos || data.images).map((image: any) => ({
+                            uri: image.downloadURL || image,
+                            downloadURL: image.downloadURL || image,
+                            path: image.path || ''
                         })) : [];
 
                     return {
@@ -144,6 +154,8 @@ export async function getCar(carId: string, source: 'catalog' | 'collection' = '
                         yearNumber: data.yearNumber || '',
                         toyNumber: data.toyNumber || '',
                         color: data.color || '',
+                        brand: data.brand || '',          
+                        manufacturer: data.manufacturer || '', 
                         tampo: data.tampo || '',
                         baseColor: data.baseColor || '',
                         windowColor: data.windowColor || '',
@@ -161,10 +173,10 @@ export async function getCar(carId: string, source: 'catalog' | 'collection' = '
                 if (carSnap.exists() && !carSnap.data()?.deleted) {
                     const data = carSnap.data();
                     const images = Array.isArray(data.photos || data.images) ?
-                        (data.photos || data.images).map((url: string) => ({
-                            uri: url,
-                            downloadURL: url,
-                            path: url
+                        (data.photos || data.images).map((image: any) => ({
+                            uri: image.downloadURL || image,
+                            downloadURL: image.downloadURL || image,
+                            path: image.path || ''
                         })) : [];
 
                     return {
@@ -177,6 +189,8 @@ export async function getCar(carId: string, source: 'catalog' | 'collection' = '
                         yearNumber: data.yearNumber || '',
                         toyNumber: data.toyNumber || '',
                         color: data.color || '',
+                        brand: data.brand || '',         
+                        manufacturer: data.manufacturer || '', 
                         tampo: data.tampo || '',
                         baseColor: data.baseColor || '',
                         windowColor: data.windowColor || '',
@@ -272,22 +286,63 @@ export async function getUserCars(userId: string, options: GetUserCarsOptions = 
 }
 
 // User Preferences
+// In firestone.ts, update the getUserPreferences function:
+
 export async function getUserPreferences(userId: string) {
     return handleFirestoreOperation(async () => {
         const docSnap = await getDoc(doc(db, 'userPreferences', userId));
-        return docSnap.exists() ? docSnap.data() as UserPreferences : null;
+        if (!docSnap.exists()) return null;
+        
+        const firestoreData = docSnap.data() as FirestoreUserPreferences;
+        
+        // Create a new object to avoid modifying the original data
+        const convertedData = {
+            ...firestoreData,
+            preferences: {
+                ...firestoreData.preferences,
+                sync: firestoreData.preferences.sync ? {
+                    ...firestoreData.preferences.sync,
+                    // Only convert if it's a Timestamp
+                    lastSynced: firestoreData.preferences.sync.lastSynced instanceof Timestamp
+                        ? firestoreData.preferences.sync.lastSynced.toDate()
+                        : firestoreData.preferences.sync.lastSynced
+                } : undefined
+            }
+        };
+        
+        return convertedData as unknown as UserPreferences;
     });
 }
-
-export async function updateUserPreferences(userId: string, preferences: Partial<UserPreferences>) {
+  
+  // Update the updateUserPreferences function to properly store the timestamp:
+  
+  export async function updateUserPreferences(userId: string, preferences: Partial<UserPreferences>) {
     return handleFirestoreOperation(async () => {
-        const prefsRef = doc(db, 'userPreferences', userId);
-        await setDoc(prefsRef, {
-            ...preferences,
-            updatedAt: serverTimestamp()
-        }, { merge: true });
+      const prefsRef = doc(db, 'userPreferences', userId);
+      
+      // Create a deep copy to avoid modifying the original preferences
+      const firestorePrefs: Partial<FirestoreUserPreferences> = {
+        ...preferences,
+        preferences: preferences.preferences ? {
+          ...preferences.preferences,
+          sync: preferences.preferences.sync ? {
+            ...preferences.preferences.sync,
+            // Handle the lastSynced conversion
+            lastSynced: preferences.preferences.sync.lastSynced instanceof Date
+              ? Timestamp.fromDate(preferences.preferences.sync.lastSynced)
+              : preferences.preferences.sync.lastSynced instanceof Timestamp
+                ? preferences.preferences.sync.lastSynced
+                : null
+          } : undefined
+        } : undefined
+      };
+      
+      await setDoc(prefsRef, {
+        ...firestorePrefs,
+        updatedAt: serverTimestamp()
+      }, { merge: true });
     });
-}
+  }
 
 // Wishlist
 export async function getUserWishlist(userId: string, options: GetUserCarsOptions = {}) {
@@ -325,6 +380,8 @@ export async function addToCollection(userId: string, catalogCar: CatalogCar) {
             yearNumber: catalogCar.yearNumber,
             toyNumber: catalogCar.toyNumber,  // Keep the toyNumber as reference
             color: catalogCar.color,
+            brand: catalogCar.brand || '',
+            manufacturer: catalogCar.manufacturer || '',
             tampo: catalogCar.tampo,
             baseColor: catalogCar.baseColor,
             windowColor: catalogCar.windowColor,
@@ -396,6 +453,8 @@ export async function addToWishlist(userId: string, catalogCar: CatalogCar) {
         const wishlistData = {
             userId,
             ...catalogCar,
+            brand: catalogCar.brand || '',
+            manufacturer: catalogCar.manufacturer || '',
             id: newWishlistRef.id,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
@@ -437,13 +496,32 @@ export async function getCatalog(options: GetUserCarsOptions = {}) {
         return {
             items: snapshot.docs.map(doc => {
                 const data = doc.data();
-                // Initialize empty images array if no photos exist
-                const images = Array.isArray(data.photos) ?
-                    data.photos.map((url: string) => ({
-                        uri: url,
-                        downloadURL: url,
-                        path: url
-                    })) : [];
+                console.log('Raw catalog item data:', data); // Debug log
+
+                // Handle both photos and images fields, and handle different data structures
+                let images = [];
+                if (Array.isArray(data.photos)) {
+                    images = data.photos.map((photo: any) => {
+                        if (typeof photo === 'string') {
+                            return {
+                                uri: photo,
+                                downloadURL: photo,
+                                path: photo
+                            };
+                        } else if (typeof photo === 'object') {
+                            return {
+                                uri: photo.downloadURL || photo.uri || '',
+                                downloadURL: photo.downloadURL || photo.uri || '',
+                                path: photo.path || ''
+                            };
+                        }
+                        return null;
+                    }).filter(Boolean);
+                } else if (Array.isArray(data.images)) {
+                    images = data.images;
+                }
+
+                console.log('Processed images:', images); // Debug log
 
                 return {
                     id: doc.id,
@@ -454,6 +532,8 @@ export async function getCatalog(options: GetUserCarsOptions = {}) {
                     yearNumber: data.yearNumber || '',
                     toyNumber: data.toyNumber || '',
                     color: data.color || '',
+                    brand: data.brand || '',           
+                    manufacturer: data.manufacturer || '', 
                     tampo: data.tampo || '',
                     baseColor: data.baseColor || '',
                     windowColor: data.windowColor || '',
@@ -500,4 +580,17 @@ export async function uploadImage(uri: string, path: string): Promise<string> {
 
 export function generateStoragePath(userId: string, carId: string, filename: string): string {
     return `users/${userId}/cars/${carId}/${filename}`;
+}
+
+export async function updateUserProfile(userId: string, updates: {
+    updatedAt?: any;
+    preferences?: Partial<UserPreferences['preferences']>;
+}) {
+    return handleFirestoreOperation(async () => {
+        const userRef = doc(db, 'userPreferences', userId);
+        await setDoc(userRef, {
+            ...updates,
+            updatedAt: serverTimestamp()
+        }, { merge: true });
+    });
 }

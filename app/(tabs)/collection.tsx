@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
     View,
     Text,
@@ -37,31 +37,59 @@ import { getUserCars, deleteCar, updateCarImages, uploadImage, generateStoragePa
 import * as ImagePicker from 'expo-image-picker';
 import { useFilterStore } from '../../stores/filterStore';
 import { FilterProcessor } from '../../utils/FilterProcessor';
+import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 import type { Car } from '../../types/models';
 
-function getImageSource(images: Array<{ uri?: string; downloadURL?: string | { uri: string } }>) {
+const storage = getStorage();
+
+async function getImageSource(images: Array<{ 
+    uri?: string; 
+    downloadURL?: string | { uri: string };
+    path?: string;
+}>) {
     if (!images || !images[0]) {
         return require('assets/placeholder-image.png');
     }
 
-    const image = images[0];
-    if (!image.downloadURL && !image.uri) {
+    try {
+        // Handle gs:// paths
+        if (images[0].path && typeof images[0].path === 'string' && images[0].path.startsWith('gs://')) {
+            try {
+                const gsPath = images[0].path.replace(/^gs:\/\/[^\/]+\//, '');
+                const imageRef = ref(storage, gsPath);
+                const url = await getDownloadURL(imageRef);
+                return { uri: url };
+            } catch (error) {
+                console.log('Error getting URL from gs path:', error);
+            }
+        }
+
+        // Try regular path
+        if (images[0].path && typeof images[0].path === 'string') {
+            try {
+                const imageRef = ref(storage, images[0].path);
+                const url = await getDownloadURL(imageRef);
+                return { uri: url };
+            } catch (error) {
+                console.log('Error getting URL from path:', error);
+            }
+        }
+
+        // Try downloadURL
+        if (images[0].downloadURL && typeof images[0].downloadURL === 'string') {
+            return { uri: images[0].downloadURL };
+        }
+
+        // Try uri
+        if (images[0].uri && typeof images[0].uri === 'string') {
+            return { uri: images[0].uri };
+        }
+
+        return require('assets/placeholder-image.png');
+    } catch (error) {
+        console.error('Error getting image URL:', error);
         return require('assets/placeholder-image.png');
     }
-
-    if (typeof image.downloadURL === 'string') {
-        return { uri: image.downloadURL };
-    }
-
-    if (typeof image.downloadURL === 'object' && 'uri' in image.downloadURL) {
-        return { uri: image.downloadURL.uri };
-    }
-
-    if (image.uri) {
-        return { uri: image.uri };
-    }
-
-    return require('assets/placeholder-image.png');
 }
 
 interface SortOption {
@@ -155,6 +183,17 @@ export default function CollectionScreen() {
     const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
     const [selectionMode, setSelectionMode] = useState(false);
     const [longPressAnim] = useState(new Animated.Value(1));
+    const [imageUrls, setImageUrls] = useState<{[key: string]: any}>({});
+
+    useEffect(() => {
+        collection.forEach(async (item) => {
+            const source = await getImageSource(item.images);
+            setImageUrls(prev => ({
+                ...prev,
+                [item.id]: source
+            }));
+        });
+    }, [collection]);
 
     const totalValue = useMemo(() => {
         return collection.reduce((sum, car) => {
@@ -346,9 +385,21 @@ export default function CollectionScreen() {
         >
             <Animated.View style={{ transform: [{ scale: longPressAnim }] }}>
                 <View style={styles.imageContainer}>
+                    {!imageUrls[item.id] && (
+                        <ActivityIndicator 
+                            style={StyleSheet.absoluteFill}
+                            color={colors.primary}
+                        />
+                    )}
                     <Image
-                        source={getImageSource(item.images)}
+                        source={imageUrls[item.id] || require('assets/placeholder-image.png')}
                         style={styles.gridImage}
+                        onError={() => {
+                            setImageUrls(prev => ({
+                                ...prev,
+                                [item.id]: require('assets/placeholder-image.png')
+                            }));
+                        }}
                     />
                     {item.images.length > 1 && (
                         <View style={styles.customImageIndicator}>
@@ -419,9 +470,21 @@ export default function CollectionScreen() {
                 { transform: [{ scale: longPressAnim }] }
             ]}>
                 <View style={styles.imageContainer}>
+                    {!imageUrls[item.id] && (
+                        <ActivityIndicator 
+                            style={StyleSheet.absoluteFill}
+                            color={colors.primary}
+                        />
+                    )}
                     <Image
-                        source={getImageSource(item.images)}
+                        source={imageUrls[item.id] || require('assets/placeholder-image.png')}
                         style={styles.listImage}
+                        onError={() => {
+                            setImageUrls(prev => ({
+                                ...prev,
+                                [item.id]: require('assets/placeholder-image.png')
+                            }));
+                        }}
                     />
                     {item.images.length > 1 && (
                         <View style={styles.customImageIndicator}>
@@ -465,7 +528,7 @@ export default function CollectionScreen() {
                 />
             </Animated.View>
         </Pressable>
-    ), [router, handleAddPhotos, handleEdit, handleDelete, colors, selectedItems, selectionMode, toggleItemSelection]);
+    ), [router, handleAddPhotos, handleEdit, handleDelete, colors, selectedItems, selectionMode, toggleItemSelection]); 
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>

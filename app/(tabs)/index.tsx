@@ -30,29 +30,78 @@ import { Colors } from 'constants/Colors';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { collection, query, where, getDocs, onSnapshot } from 'firebase/firestore';
+import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 import { db } from 'config/firebase';
 import { getCatalog, addToCollection, addToWishlist, removeFromWishlist } from 'services/firestone';
 import { useFilterStore } from '../../stores/filterStore';
 import { FilterProcessor } from '../../utils/FilterProcessor';
 import type { CatalogCar } from 'types/models';
+import type { StorageImage } from 'types/storage';
 
-function getImageSource(images: Array<{ downloadURL?: string }>) {
-    if (!images || !images[0] || !images[0].downloadURL) {
+const storage = getStorage();
+
+async function getImageSource(images: StorageImage[]) {
+    console.log('Getting image source for:', images);
+
+    if (!images || !images[0]) {
+        console.log('No images found, using placeholder');
         return require('assets/placeholder-image.png');
     }
-    return { uri: images[0].downloadURL };
-}
 
-type PaginatedResponse = {
-    items: CatalogCar[];
-    lastDoc: any;
-    hasMore: boolean;
-};
+    try {
+        // Handle gs:// paths
+        if (images[0].path && typeof images[0].path === 'string' && images[0].path.startsWith('gs://')) {
+            console.log('Handling gs:// path:', images[0].path);
+            try {
+                // Remove the gs://bucket-name/ part to get the actual path
+                const gsPath = images[0].path.replace(/^gs:\/\/[^\/]+\//, '');
+                const imageRef = ref(storage, gsPath);
+                const url = await getDownloadURL(imageRef);
+                console.log('Got URL from gs path:', url);
+                return { uri: url };
+            } catch (error) {
+                console.log('Error getting URL from gs path:', error);
+            }
+        }
+
+        // Try regular path
+        if (images[0].path && typeof images[0].path === 'string') {
+            console.log('Trying regular path:', images[0].path);
+            try {
+                const imageRef = ref(storage, images[0].path);
+                const url = await getDownloadURL(imageRef);
+                console.log('Got URL from path:', url);
+                return { uri: url };
+            } catch (error) {
+                console.log('Error getting URL from path:', error);
+            }
+        }
+
+        // Try downloadURL
+        if (images[0].downloadURL && typeof images[0].downloadURL === 'string') {
+            console.log('Trying downloadURL:', images[0].downloadURL);
+            return { uri: images[0].downloadURL };
+        }
+
+        // Try uri
+        if (images[0].uri && typeof images[0].uri === 'string') {
+            console.log('Trying uri:', images[0].uri);
+            return { uri: images[0].uri };
+        }
+
+        console.log('No valid image source found');
+        return require('assets/placeholder-image.png');
+    } catch (error) {
+        console.error('Error getting image URL:', error);
+        return require('assets/placeholder-image.png');
+    }
+}
 
 interface SortOption {
     label: string;
     value: 'recent' | 'purchase' | 'name' | 'priceHigh' | 'priceLow';
 }
+
 
 interface ActionButtonsProps {
     onAddToCollection: () => void;
@@ -69,7 +118,6 @@ interface LoadingStates {
     addingToCollection: boolean;
     addingToWishlist: boolean;
 }
-
 const sortOptions: SortOption[] = [
     { label: 'Recently Added', value: 'recent' },
     { label: 'Purchase Date', value: 'purchase' },
@@ -127,6 +175,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
         </View>
     );
 };
+
 export default function CatalogScreen() {
     const router = useRouter();
     const { user } = useAuth();
@@ -138,7 +187,8 @@ export default function CatalogScreen() {
     const [showSortModal, setShowSortModal] = useState(false);
     const [catalog, setCatalog] = useState<CatalogCar[]>([]);
     const [wishlistItems, setWishlistItems] = useState<Set<string>>(new Set());
-    const[collectionItems, setCollectionItems] = useState<Set<string>>(new Set());
+    const [collectionItems, setCollectionItems] = useState<Set<string>>(new Set());
+    const [imageUrls, setImageUrls] = useState<{[key: string]: any}>({});
     const [loading, setLoading] = useState<LoadingStates>({
         fetchingCars: true,
         refreshing: false,
@@ -149,14 +199,12 @@ export default function CatalogScreen() {
     useEffect(() => {
         if (!user) return;
 
-        // Create a query for the wishlist
         const wishlistQuery = query(
             collection(db, 'wishlist'),
             where('userId', '==', user.uid),
             where('deleted', '==', false)
         );
 
-        // Set up real-time listener
         const unsubscribe = onSnapshot(wishlistQuery, (snapshot) => {
             const wishlistToyNumbers = new Set(
                 snapshot.docs.map(doc => doc.data().toyNumber)
@@ -166,10 +214,18 @@ export default function CatalogScreen() {
             Alert.alert('Error', 'Failed to sync wishlist status.');
         });
 
-        // Cleanup listener on unmount
         return () => unsubscribe();
     }, [user]);
 
+    useEffect(() => {
+        catalog.forEach(async (item) => {
+            const source = await getImageSource(item.images);
+            setImageUrls(prev => ({
+                ...prev,
+                [item.id]: source
+            }));
+        });
+    }, [catalog]);
     const fetchCollectionStatus = async () => {
         if (!user) return;
 
@@ -236,7 +292,6 @@ export default function CatalogScreen() {
         setLoading(prev => ({ ...prev, addingToWishlist: true }));
         try {
             if (wishlistItems.has(car.toyNumber)) {
-                // Find the wishlist item ID
                 const wishlistQuery = query(
                     collection(db, 'wishlist'),
                     where('userId', '==', user.uid),
@@ -282,9 +337,21 @@ export default function CatalogScreen() {
             activeOpacity={0.7}
         >
             <View style={styles.imageContainer}>
+                {!imageUrls[item.id] && (
+                    <ActivityIndicator 
+                        style={StyleSheet.absoluteFill}
+                        color={colors.primary}
+                    />
+                )}
                 <Image
-                    source={getImageSource(item.images)}
+                    source={imageUrls[item.id] || require('assets/placeholder-image.png')}
                     style={styles.gridImage}
+                    onError={() => {
+                        setImageUrls(prev => ({
+                            ...prev,
+                            [item.id]: require('assets/placeholder-image.png')
+                        }));
+                    }}
                 />
                 {item.images.length > 1 && (
                     <View style={styles.customImageIndicator}>
@@ -317,7 +384,7 @@ export default function CatalogScreen() {
                 />
             </View>
         </TouchableOpacity>
-    ), [router, handleAddToCollection, handleWishlistAction, colors, wishlistItems, loading]);
+    ), [router, handleAddToCollection, handleWishlistAction, colors, wishlistItems, loading, imageUrls]);
 
     const renderListItem = useCallback(({ item }: { item: CatalogCar }) => (
         <TouchableOpacity
@@ -329,9 +396,21 @@ export default function CatalogScreen() {
             activeOpacity={0.7}
         >
             <View style={styles.imageContainer}>
+                {!imageUrls[item.id] && (
+                    <ActivityIndicator 
+                        style={StyleSheet.absoluteFill}
+                        color={colors.primary}
+                    />
+                )}
                 <Image
-                    source={getImageSource(item.images)}
+                    source={imageUrls[item.id] || require('assets/placeholder-image.png')}
                     style={styles.listImage}
+                    onError={() => {
+                        setImageUrls(prev => ({
+                            ...prev,
+                            [item.id]: require('assets/placeholder-image.png')
+                        }));
+                    }}
                 />
                 {item.images.length > 1 && (
                     <View style={styles.customImageIndicator}>
@@ -356,7 +435,7 @@ export default function CatalogScreen() {
                 </Text>
             </View>
             <ActionButtons
-                style={styles.gridActions}
+                style={styles.listActions}
                 onAddToCollection={() => handleAddToCollection(item)}
                 onAddToWishlist={() => handleWishlistAction(item)}
                 isInWishlist={wishlistItems.has(item.toyNumber)}
@@ -364,7 +443,7 @@ export default function CatalogScreen() {
                 isProcessing={loading.addingToWishlist}
             />
         </TouchableOpacity>
-    ), [router, handleAddToCollection, handleWishlistAction, colors, wishlistItems, loading]);
+    ), [router, handleAddToCollection, handleWishlistAction, colors, wishlistItems, loading, imageUrls]);
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>

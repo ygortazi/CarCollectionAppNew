@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -20,7 +20,7 @@ import {
   Share2,
   Smartphone,
   Moon,
-    ChevronRight,
+  ChevronRight,
   User,
 } from 'lucide-react-native';
 import { useAuth } from '../../context/auth';
@@ -28,6 +28,11 @@ import { useTheme } from '../../context/theme';
 import { Colors } from '../../constants/Colors';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import { useNotifications } from '../../context/notifications';
+import { useTranslation } from 'react-i18next';
+import i18next from 'i18next';
+import { getUserPreferences, updateUserPreferences } from '../../services/firestone';
+import { useSettings, DEFAULT_SETTINGS } from '../../context/settings';
 
 interface ToggleSwitchProps {
   enabled: boolean;
@@ -97,23 +102,115 @@ const SettingItem: React.FC<SettingItemProps> = ({
     )}
   </TouchableOpacity>
 );
+
 export default function SettingsScreen() {
   const router = useRouter();
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const { theme, isDark, toggleTheme } = useTheme();
   const colors = Colors[theme];
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const { isEnabled: notificationsEnabled, toggleNotifications } = useNotifications();
+  const { t } = useTranslation();
+  const { settings } = useSettings();
 
-  const handleNotificationsToggle = (value: boolean) => {
-    setNotificationsEnabled(value);
-    if (value) {
-      Alert.alert('Enable Notifications', 'Would you like to enable push notifications?');
+  const handleNotificationsToggle = async () => {
+    try {
+        if (!user?.uid) return;
+
+        toggleNotifications(!notificationsEnabled);
+        
+        await updateUserPreferences(user.uid, {
+            preferences: {
+                ...settings,
+                notificationsEnabled: !notificationsEnabled,
+                sync: {
+                    autoSync: settings.sync.autoSync,
+                    wifiOnly: settings.sync.wifiOnly,
+                    frequency: settings.sync.frequency,
+                    lastSynced: settings.sync.lastSynced
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Error updating notification preference:', error);
+        Alert.alert(
+            'Error',
+            'Failed to update notification settings. Please try again.'
+        );
+        toggleNotifications(notificationsEnabled);
     }
-  };
+};
 
-  const handleDarkModeToggle = async () => {
-    await toggleTheme();
-  };
+const handleDarkModeToggle = async () => {
+    try {
+        if (!user?.uid) return;
+
+        toggleTheme();
+        
+        await updateUserPreferences(user.uid, {
+            preferences: {
+                ...settings,
+                theme: isDark ? 'light' : 'dark',
+                sync: {
+                    autoSync: settings.sync.autoSync,
+                    wifiOnly: settings.sync.wifiOnly,
+                    frequency: settings.sync.frequency,
+                    lastSynced: settings.sync.lastSynced
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Error updating theme preference:', error);
+        Alert.alert(
+            'Error',
+            'Failed to update theme setting. Please try again.'
+        );
+        toggleTheme();
+    }
+};
+
+const handleLanguageChange = async (language: string) => {
+    try {
+        if (!user?.uid) return;
+
+        await i18next.changeLanguage(language);
+        
+        await updateUserPreferences(user.uid, {
+            preferences: {
+                ...settings,
+                language: language,
+                sync: {
+                    autoSync: settings.sync.autoSync,
+                    wifiOnly: settings.sync.wifiOnly,
+                    frequency: settings.sync.frequency,
+                    lastSynced: settings.sync.lastSynced
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Error updating language preference:', error);
+        Alert.alert(
+            'Error',
+            'Failed to update language setting. Please try again.'
+        );
+    }
+};
+
+  useEffect(() => {
+    const loadUserPreferences = async () => {
+        if (!user?.uid) return;
+        
+        try {
+            const preferences = await getUserPreferences(user.uid);
+            if (preferences?.preferences?.notificationsEnabled !== undefined) {
+                toggleNotifications(preferences.preferences.notificationsEnabled);
+            }
+        } catch (error) {
+            console.error('Error loading user preferences:', error);
+        }
+    };
+
+    loadUserPreferences();
+}, [user?.uid]);
 
   const handleNavigation = (screen: string) => {
     switch(screen) {
@@ -155,18 +252,18 @@ export default function SettingsScreen() {
         >
           <ChevronLeft size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Settings</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{t('settings.title')}</Text>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <SectionHeader title="PREFERENCES" colors={colors} />
+        <SectionHeader title={t('settings.preferences')} colors={colors} />
         <View style={[styles.section, { 
           backgroundColor: colors.background,
           borderColor: colors.border 
         }]}>
           <SettingItem
             icon={Bell}
-            label="Notifications"
+            label={t('settings.notifications')}
             action={
               <ToggleSwitch
                 enabled={notificationsEnabled}
@@ -178,7 +275,7 @@ export default function SettingsScreen() {
           />
           <SettingItem
             icon={Moon}
-            label="Dark Mode"
+            label={t('settings.darkMode')}
             action={
               <ToggleSwitch
                 enabled={isDark}
@@ -221,29 +318,29 @@ export default function SettingsScreen() {
           />
         </View>
 
-              <SectionHeader title="ACCOUNT" colors={colors} />
-              <View style={[styles.section, {
-                  backgroundColor: colors.background,
-                  borderColor: colors.border
-              }]}>
-                  <SettingItem
-                      icon={User}
-                      label="Change Username or Password"
-                      onPress={() => router.push('/(details)/change-profile')}
-                      colors={colors}
-                  />
-                  <SettingItem
-                      icon={Mail}
-                      label="Email Preferences"
-                      onPress={() => handleNavigation('email-preferences')}
-                      colors={colors}
-                  />
-                  <SettingItem
-                      icon={Lock}
-                      label="Privacy Settings"
-                      onPress={() => handleNavigation('privacy-settings')}
-                      colors={colors}
-                  />
+        <SectionHeader title="ACCOUNT" colors={colors} />
+        <View style={[styles.section, {
+          backgroundColor: colors.background,
+          borderColor: colors.border
+        }]}>
+          <SettingItem
+            icon={User}
+            label="Change Username or Password"
+            onPress={() => router.push('/(details)/change-profile')}
+            colors={colors}
+          />
+          <SettingItem
+            icon={Mail}
+            label="Notifications and Emails"
+            onPress={() => handleNavigation('email-preferences')}
+            colors={colors}
+          />
+          <SettingItem
+            icon={Lock}
+            label="Privacy Settings"
+            onPress={() => handleNavigation('privacy-settings')}
+            colors={colors}
+          />
         </View>
 
         <SectionHeader title="ABOUT" colors={colors} />

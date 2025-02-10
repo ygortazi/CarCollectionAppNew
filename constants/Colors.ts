@@ -15,6 +15,7 @@ export const Colors = {
     secondary: '#666666',
         surface: '#F5F5F5',
         success: '#22CC88', 
+        error: '#FF4444',
   },
   dark: {
     background: '#121212',
@@ -23,6 +24,9 @@ export const Colors = {
     primary: '#0066FF',
     secondary: '#A0A0A0',
       surface: '#1E1E1E',
-      success: '#22CC88', 
+      success: '#22CC88',
+      error: '#FF4444', 
   },
 };
+
+export type ColorTheme = typeof Colors.light;

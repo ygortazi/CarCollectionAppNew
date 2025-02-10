@@ -1,12 +1,17 @@
 import { Stack } from 'expo-router';
 import { Platform } from 'react-native';
+import { useTheme } from '../../context/theme';
+import { Colors } from '../../constants/Colors';
 
 export default function DetailsLayout() {
+  const { theme } = useTheme();
+  const colors = Colors[theme];
+
   return (
     <Stack
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: '#fff' },
+        contentStyle: { backgroundColor: colors.background },
         animation: Platform.OS === 'android' ? 'slide_from_right' : 'default',
         presentation: 'card',
       }}>

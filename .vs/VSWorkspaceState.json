@@ -2,10 +2,16 @@
   "ExpandedNodes": [
     "",
     "\\app",
-    "\\app\\(details)",
-    "\\app\\(tabs)",
-    "\\services"
+    "\\app\\modals",
+    "\\config",
+    "\\constants",
+    "\\context",
+    "\\hooks",
+    "\\scripts",
+    "\\stores",
+    "\\types",
+    "\\utils"
   ],
-  "SelectedNode": "\\eas.json",
+  "SelectedNode": "\\App.tsx",
   "PreviewInSolutionExplorer": false
 }
